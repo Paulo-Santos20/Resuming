@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
 import { doc, getDoc } from 'firebase/firestore'
-import { getDbInstance, getAuthInstance } from '@/lib/firebase'
+import { getDbInstance } from '@/lib/firebase'
 import { useAuth } from '@/hooks/use-auth'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -15,7 +15,7 @@ import type { JobDescription, ResumeVersion } from '@/types'
 
 export default function EmailVagaPage() {
   const { id } = useParams<{ id: string }>()
-  const { user, profile } = useAuth()
+  const { user, profile, googleAccessToken } = useAuth()
   const router = useRouter()
   const [job, setJob] = useState<JobDescription | null>(null)
   const [sending, setSending] = useState(false)
@@ -41,11 +41,12 @@ export default function EmailVagaPage() {
   const handleGenerateEmail = async (): Promise<{ subject: string; body: string }> => {
     setGenerating(true)
     try {
+      const idToken = await user?.getIdToken()
       const response = await fetch('/api/python/generate-email', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${await getAuthInstance().currentUser?.getIdToken()}`,
+          Authorization: `Bearer ${idToken}`,
         },
         body: JSON.stringify({
           resumeHtml: '<p>Currículo em anexo</p>',
@@ -68,17 +69,17 @@ export default function EmailVagaPage() {
     if (!user?.uid || !job) return
     setSending(true)
     try {
-      const idToken = await getAuthInstance().currentUser?.getIdToken()
+      if (!googleAccessToken) {
+        throw new Error('Token de acesso do Google não disponível — faça login novamente')
+      }
       const response = await fetch('/api/email/send', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${idToken}`,
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           subject,
           body,
           to: profile?.email,
+          accessToken: googleAccessToken,
         }),
       })
       if (!response.ok) throw new Error('Erro ao enviar email')

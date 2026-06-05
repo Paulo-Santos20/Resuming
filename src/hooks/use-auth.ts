@@ -6,6 +6,7 @@ import {
   signInWithPopup,
   signOut,
   User,
+  GoogleAuthProvider,
 } from 'firebase/auth'
 import { doc, setDoc, getDoc } from 'firebase/firestore'
 import { getAuthInstance, getDbInstance, getGoogleProvider } from '@/lib/firebase'
@@ -16,6 +17,7 @@ export function useAuth() {
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [googleAccessToken, setGoogleAccessToken] = useState<string | null>(null)
 
   useEffect(() => {
     const authInstance = getAuthInstance()
@@ -47,6 +49,10 @@ export function useAuth() {
     setError(null)
     try {
       const result = await signInWithPopup(authInstance, getGoogleProvider())
+      const credential = GoogleAuthProvider.credentialFromResult(result)
+      if (credential?.accessToken) {
+        setGoogleAccessToken(credential.accessToken)
+      }
       const { uid, email, displayName, photoURL } = result.user
       const userProfile: UserProfile = {
         uid,
@@ -72,9 +78,10 @@ export function useAuth() {
       const message = err instanceof Error ? err.message : 'Erro ao sair'
       setError(message)
     }
+    setGoogleAccessToken(null)
     setProfile(null)
     setUser(null)
   }, [])
 
-  return { user, profile, loading, error, login, logout }
+  return { user, profile, loading, error, login, logout, googleAccessToken }
 }

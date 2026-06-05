@@ -21,7 +21,8 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - `POST /api/python/ocr-job` → Python `{ photoUrl }` → `{ success, data, rawText }`
 - `POST /api/python/generate-pdf` → Python `{ htmlContent }` → binary PDF
 - `POST /api/python/generate-email` → Python `{ resumeHtml, jobTitle, companyName }` → `{ success, subject, body }`
-- `POST /api/email/send` → forwarded as Bearer token, sends via Gmail API
+- `POST /api/email/send` → `{ subject, body, to, accessToken }` → sends via Gmail API (per-user OAuth token, not central account)
+- `googleAccessToken` is extracted from `GoogleAuthProvider.credentialFromResult()` at login and returned by `useAuth()`
 
 ## Firebase pattern (lazy, never at module level)
 ```typescript

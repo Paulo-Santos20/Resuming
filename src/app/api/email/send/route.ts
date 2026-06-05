@@ -1,45 +1,37 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getAuth } from 'firebase-admin/auth'
-import { initAdmin } from '@/lib/firebase-admin'
-import nodemailer from 'nodemailer'
+import { google } from 'googleapis'
 
 export async function POST(request: NextRequest) {
   try {
-    const authHeader = request.headers.get('authorization')
-    if (!authHeader?.startsWith('Bearer ')) {
-      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+    const { subject, body, to, accessToken } = await request.json()
+
+    if (!subject || !body || !accessToken) {
+      return NextResponse.json({ error: 'Assunto, corpo e token são obrigatórios' }, { status: 400 })
     }
 
-    const token = authHeader.split('Bearer ')[1]
-    initAdmin()
-    await getAuth().verifyIdToken(token)
+    const oauth2Client = new google.auth.OAuth2()
+    oauth2Client.setCredentials({ access_token: accessToken })
 
-    const { subject, body, to } = await request.json()
+    const gmail = google.gmail({ version: 'v1', auth: oauth2Client })
 
-    if (!subject || !body) {
-      return NextResponse.json({ error: 'Assunto e corpo são obrigatórios' }, { status: 400 })
-    }
+    const utf8Subject = `=?UTF-8?B?${Buffer.from(subject).toString('base64')}?=`
+    const messageParts = [
+      `To: ${to}`,
+      'Content-Type: text/html; charset=utf-8',
+      'MIME-Version: 1.0',
+      `Subject: ${utf8Subject}`,
+      '',
+      body,
+    ]
+    const raw = Buffer.from(messageParts.join('\n'))
+      .toString('base64')
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=+$/, '')
 
-    const user = process.env.GMAIL_USER
-    const pass = process.env.GMAIL_APP_PASSWORD
-
-    if (!user || !pass) {
-      return NextResponse.json(
-        { error: 'Gmail SMTP não configurado. Defina GMAIL_USER e GMAIL_APP_PASSWORD.' },
-        { status: 500 }
-      )
-    }
-
-    const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: { user, pass },
-    })
-
-    await transporter.sendMail({
-      from: user,
-      to: to || user,
-      subject,
-      html: body,
+    await gmail.users.messages.send({
+      userId: 'me',
+      requestBody: { raw },
     })
 
     return NextResponse.json({ success: true })
