@@ -64,6 +64,8 @@ export interface Resume {
   updatedAt: number
 }
 
+import type { TemplateStyle, ResumeFormatting } from './editor'
+
 export interface ResumeVersion {
   id: string
   resumeId: string
@@ -71,6 +73,8 @@ export interface ResumeVersion {
   jobTitle: string
   content: string
   templateType: 'ats' | 'original'
+  templateStyle?: TemplateStyle
+  formatting?: ResumeFormatting
   versionNumber: number
   createdAt: number
 }

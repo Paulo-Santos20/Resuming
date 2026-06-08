@@ -1,0 +1,11 @@
+.rm-template {
+  --rm-font: 'Arial', sans-serif;
+  --rm-accent: #1a3c5e;
+  --rm-section-border: 2px solid var(--rm-accent);
+  --rm-card-bg: transparent;
+  --rm-card-shadow: none;
+  --rm-card-radius: 0;
+  --rm-header-bg: transparent;
+  --rm-header-color: var(--rm-accent);
+  --rm-layout: block;
+}

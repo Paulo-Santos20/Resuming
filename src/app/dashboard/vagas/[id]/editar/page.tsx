@@ -1,60 +1,94 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
-import { useParams } from 'next/navigation'
-import { doc, getDoc, updateDoc } from 'firebase/firestore'
+import { useState, useEffect } from 'react'
+import dynamic from 'next/dynamic'
+import { useParams, useRouter } from 'next/navigation'
+import { doc, getDoc, collection, getDocs, updateDoc } from 'firebase/firestore'
 import { getDbInstance } from '@/lib/firebase'
 import { useAuth } from '@/hooks/use-auth'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
-import { Textarea } from '@/components/ui/textarea'
-import { Label } from '@/components/ui/label'
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Skeleton } from '@/components/ui/skeleton'
-import { ArrowLeft, Save, Eye, FileEdit } from 'lucide-react'
-import { useRouter } from 'next/navigation'
-import { toastSuccess, toastError } from '@/lib/toast'
-import { sanitizeHtml } from '@/lib/sanitize'
-import type { JobDescription } from '@/types'
+import { ArrowLeft, Save } from 'lucide-react'
+import { toastSuccess } from '@/lib/toast'
+import type { JobDescription, ResumeVersion } from '@/types'
+import type { ResumeFormatting, TemplateStyle } from '@/types/editor'
+import { DEFAULT_FORMATTING } from '@/types/editor'
+
+const ResumeEditor = dynamic(
+  () => import('@/components/resume/resume-editor').then((m) => m.ResumeEditor),
+  { ssr: false }
+)
 
 export default function EditarCurriculoPage() {
   const { id } = useParams<{ id: string }>()
   const { user } = useAuth()
   const router = useRouter()
   const [job, setJob] = useState<JobDescription | null>(null)
-  const [content, setContent] = useState('')
-  const [saving, setSaving] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+
+  const [initialContent, setInitialContent] = useState('')
+  const [versionId, setVersionId] = useState<string | undefined>(undefined)
+  const [resumeId, setResumeId] = useState<string | undefined>(undefined)
+  const [initialFormatting, setInitialFormatting] = useState<Partial<ResumeFormatting>>({})
+  const [initialTemplate, setInitialTemplate] = useState<TemplateStyle>('classic')
 
   useEffect(() => { document.title = 'Editar Currículo — Resume React' }, [])
 
   useEffect(() => {
     if (!user?.uid || !id) return
     const load = async () => {
-      const snap = await getDoc(doc(getDbInstance(), 'users', user.uid, 'jobs', id))
-      if (snap.exists()) {
-        const data = { id: snap.id, ...snap.data() } as JobDescription
-        setJob(data)
+      try {
+        const jobSnap = await getDoc(doc(getDbInstance(), 'users', user.uid, 'jobs', id))
+        if (jobSnap.exists()) {
+          setJob({ id: jobSnap.id, ...jobSnap.data() } as JobDescription)
+        }
+
+        const cached = sessionStorage.getItem(`edited-${id}`)
+        if (cached) {
+          setInitialContent(cached)
+        }
+
+        const resumesSnap = await getDocs(collection(getDbInstance(), 'users', user.uid, 'resumes'))
+        const allVersions: ResumeVersion[] = []
+        for (const rDoc of resumesSnap.docs) {
+          const vSnap = await getDocs(
+            collection(getDbInstance(), 'users', user.uid, 'resumes', rDoc.id, 'versions')
+          )
+          vSnap.docs.forEach((d) => {
+            const v = { id: d.id, ...d.data() } as ResumeVersion
+            if (v.jobId === id) allVersions.push(v)
+          })
+        }
+        if (allVersions.length > 0) {
+          allVersions.sort((a, b) => b.createdAt - a.createdAt)
+          const latest = allVersions[0]
+          if (!cached) setInitialContent(latest.content)
+          setVersionId(latest.id)
+          setResumeId(latest.resumeId)
+          if (latest.formatting) setInitialFormatting(latest.formatting)
+          if (latest.templateStyle) setInitialTemplate(latest.templateStyle)
+        }
+      } catch (err) {
+        console.error('Error loading edit page:', err)
       }
       setLoading(false)
     }
     load()
   }, [user?.uid, id])
 
+  // Infer resumeId from sessionStorage if not found in versions
   useEffect(() => {
-    if (id) {
-      const cached = sessionStorage.getItem(`edited-${id}`)
-      if (cached) setContent(cached)
+    if (!resumeId && !loading) {
+      const storedResumeId = sessionStorage.getItem(`resume-${id}`)
+      if (storedResumeId) setResumeId(storedResumeId)
     }
-  }, [id])
+  }, [resumeId, loading, id])
 
-  const handleSave = async () => {
+  const handleSaveAndExit = async () => {
     if (!user?.uid || !id) return
     setSaving(true)
     try {
-      if (content) {
-        sessionStorage.setItem(`edited-${id}`, content)
-      }
       await updateDoc(doc(getDbInstance(), 'users', user.uid, 'jobs', id), {
         status: 'edited',
       })
@@ -62,7 +96,6 @@ export default function EditarCurriculoPage() {
       router.push(`/dashboard/vagas/${id}`)
     } catch (err) {
       console.error('Save error:', err)
-      toastError('Erro ao salvar')
     } finally {
       setSaving(false)
     }
@@ -70,7 +103,7 @@ export default function EditarCurriculoPage() {
 
   if (loading) {
     return (
-      <div className="max-w-4xl mx-auto space-y-8">
+      <div className="max-w-6xl mx-auto space-y-8">
         <Skeleton className="h-8 w-64" />
         <Skeleton className="h-96 w-full rounded-xl" />
       </div>
@@ -78,7 +111,7 @@ export default function EditarCurriculoPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8">
+    <div className="max-w-6xl mx-auto space-y-6">
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" onClick={() => router.back()} aria-label="Voltar">
           <ArrowLeft className="h-4 w-4" />
@@ -91,62 +124,46 @@ export default function EditarCurriculoPage() {
         </div>
       </div>
 
-      <Card>
-        <CardContent className="p-6">
-          <Tabs defaultValue="edit" className="space-y-4">
-            <TabsList>
-              <TabsTrigger value="edit">
-                <FileEdit className="h-4 w-4 mr-2" />
-                Editar
-              </TabsTrigger>
-              <TabsTrigger value="preview">
-                <Eye className="h-4 w-4 mr-2" />
-                Visualizar
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="edit">
-              <div className="space-y-4">
-                <Label htmlFor="edit-content">Conteúdo do Currículo (HTML)</Label>
-                <Textarea
-                  id="edit-content"
-                  value={content}
-                  onChange={(e) => setContent(e.target.value)}
-                  rows={24}
-                  className="font-mono text-sm"
-                  placeholder="Edite o HTML do currículo manualmente..."
-                />
-              </div>
-            </TabsContent>
-
-            <TabsContent value="preview">
-              {content ? (
-                <div
-                  className="prose prose-sm max-w-none border rounded-lg p-8 bg-card"
-                  dangerouslySetInnerHTML={{ __html: sanitizeHtml(content) }}
-                />
-              ) : (
-                <div className="text-center py-12 text-muted-foreground">
-                  <p>Nenhum conteúdo para visualizar</p>
-                  <p className="text-sm mt-1">Edite o currículo ou gere uma versão com IA primeiro.</p>
-                </div>
-              )}
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
+      {resumeId ? (
+        <ResumeEditor
+          initialContent={initialContent}
+          jobId={id}
+          resumeId={resumeId}
+          versionId={versionId}
+          initialFormatting={initialFormatting}
+          initialTemplate={initialTemplate}
+          onBack={() => router.push(`/dashboard/vagas/${id}`)}
+        />
+      ) : initialContent ? (
+        <ResumeEditor
+          initialContent={initialContent}
+          jobId={id}
+          resumeId="temp"
+          initialFormatting={initialFormatting}
+          initialTemplate={initialTemplate}
+          onBack={() => router.push(`/dashboard/vagas/${id}`)}
+        />
+      ) : (
+        <div className="rounded-lg border bg-card p-12 text-center text-muted-foreground">
+          <p>Nenhum conteúdo para editar.</p>
+          <p className="text-sm mt-1">Gere uma versão na página da vaga primeiro.</p>
+          <Button asChild className="mt-4">
+            <a href={`/dashboard/vagas/${id}`}>Ir para a vaga</a>
+          </Button>
+        </div>
+      )}
 
       <div className="flex justify-end gap-3">
         <Button variant="outline" onClick={() => router.back()} aria-label="Cancelar e voltar">
           Cancelar
         </Button>
-        <Button onClick={handleSave} disabled={saving}>
+        <Button onClick={handleSaveAndExit} disabled={saving}>
           {saving ? (
             <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent mr-2" />
           ) : (
             <Save className="h-4 w-4 mr-2" />
           )}
-          Salvar Alterações
+          Salvar e Voltar
         </Button>
       </div>
     </div>

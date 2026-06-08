@@ -76,7 +76,7 @@ export function useResume(userId: string | undefined) {
         if (!idToken) throw new Error('Token de autenticação não disponível')
 
         processing.register(docRef.id, file.name)
-        processInBackground(docRef.id, downloadURL, idToken, userId, processing)
+        processInBackground(docRef.id, file.name, downloadURL, idToken, userId, processing)
 
         await fetchResumes()
         return docRef.id
@@ -208,8 +208,17 @@ export function useResume(userId: string | undefined) {
   return { resumes, versions, loading, error, fetchResumes, fetchVersions, uploadResume, editResume, deleteResume }
 }
 
+function guessName(fileName: string): string {
+  const name = fileName
+    .replace(/\.pdf$/i, '')
+    .replace(/[-_].*$/, '')
+    .trim()
+  return name || 'Nome não detectado'
+}
+
 async function processInBackground(
   resumeId: string,
+  originalFileName: string,
   downloadURL: string,
   idToken: string,
   uid: string,
@@ -238,12 +247,10 @@ async function processInBackground(
           updatedAt: Date.now(),
         })
 
-        ctx.complete(
-          resumeId,
-          data.personal?.name ?? 'Nome não detectado',
-          data.skills?.length ?? 0,
-        )
-        toastSuccess('Currículo processado', `${data.personal?.name ?? 'Currículo'} — ${data.skills?.length ?? 0} habilidades`)
+        const name = data.personal?.name || guessName(originalFileName)
+        const skillsCount = data.skills?.length ?? 0
+        ctx.complete(resumeId, name, skillsCount)
+        toastSuccess('Currículo processado', `${name} — ${skillsCount} habilidades`)
         return
       }
 
@@ -251,12 +258,12 @@ async function processInBackground(
       const detail = body.detail || body.error || ''
 
       if (response.status === 422) {
-        ctx.fail(resumeId, detail || 'Não foi possível extrair dados do PDF')
+        ctx.fail(resumeId, detail || 'Não foi possível extrair dados')
         await updateDoc(doc(db, 'users', uid, 'resumes', resumeId), {
           status: 'error',
           error: detail || 'Falha na extração',
         })
-        toastError('Erro no processamento', detail || 'PDF inválido')
+        toastError('Erro no processamento', detail || 'Arquivo inválido')
         return
       }
 
@@ -270,8 +277,7 @@ async function processInBackground(
         return
       }
 
-      ctx.updateProgress(resumeId, 30 + attempt * 5)
-      await sleep(5000)
+      await tickProgress(ctx, resumeId, 30 + attempt * 5, 60 + attempt * 3, 5000)
     } catch (err) {
       if (attempt >= maxAttempts - 1) {
         const msg = err instanceof Error ? err.message : 'Erro no processamento'
@@ -283,12 +289,23 @@ async function processInBackground(
         toastError('Processamento falhou', msg)
         return
       }
-      ctx.updateProgress(resumeId, 30 + attempt * 5)
-      await sleep(5000)
+      await tickProgress(ctx, resumeId, 30 + attempt * 5, 60 + attempt * 3, 5000)
     }
   }
 }
 
-function sleep(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms))
+async function tickProgress(
+  ctx: ReturnType<typeof useProcessing>,
+  id: string,
+  from: number,
+  to: number,
+  duration: number,
+) {
+  const steps = 5
+  const stepSize = (to - from) / steps
+  const delay = duration / steps
+  for (let i = 0; i < steps; i++) {
+    ctx.updateProgress(id, from + stepSize * (i + 1))
+    await new Promise((r) => setTimeout(r, delay))
+  }
 }

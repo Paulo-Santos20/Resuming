@@ -1,0 +1,13 @@
+.rm-template {
+  --rm-font: 'Calibri', sans-serif;
+  --rm-accent: #3b5998;
+  --rm-section-border: none;
+  --rm-card-bg: transparent;
+  --rm-card-shadow: none;
+  --rm-card-radius: 0;
+  --rm-header-bg: transparent;
+  --rm-header-color: var(--rm-accent);
+  --rm-layout: grid;
+  --rm-grid-template: 240px 1fr;
+  --rm-sidebar-bg: #f0f2f5;
+}

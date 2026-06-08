@@ -1,0 +1,11 @@
+.rm-template {
+  --rm-font: 'Georgia', serif;
+  --rm-accent: #2d6a4f;
+  --rm-section-border: none;
+  --rm-card-bg: #ffffff;
+  --rm-card-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  --rm-card-radius: 6px;
+  --rm-header-bg: linear-gradient(135deg, var(--rm-accent), #40916c);
+  --rm-header-color: #ffffff;
+  --rm-layout: block;
+}
