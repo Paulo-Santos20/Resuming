@@ -76,28 +76,28 @@ export function ResumePreviewATS({ data }: ResumePreviewATSProps) {
   return (
     <div style={style.container}>
       <div style={style.header}>
-        <h1 style={style.name}>{data.personal.name}</h1>
+        <h1 style={style.name}>{data.personal.nome}</h1>
         <div style={style.subtitle}>
-          {data.personal.email} {data.personal.phone && `| ${data.personal.phone}`}
-          {data.personal.location && ` | ${data.personal.location}`}
+          {data.personal.email} {data.personal.telefone && `| ${data.personal.telefone}`}
+          {data.personal.endereco && ` | ${data.personal.endereco}`}
           {data.personal.linkedin && ` | ${data.personal.linkedin}`}
         </div>
-        {data.personal.summary && (
+        {data.personal.resumo && (
           <p style={{ ...style.subtitle, marginTop: '12px', lineHeight: 1.5 }}>
-            {data.personal.summary}
+            {data.personal.resumo}
           </p>
         )}
       </div>
 
-      {data.experience.length > 0 && (
+      {data.experiencia.length > 0 && (
         <>
           <h2 style={style.sectionTitle}>Experiência Profissional</h2>
-          {data.experience.map((exp, i) => (
+          {data.experiencia.map((exp, i) => (
             <div key={i} style={{ marginBottom: '16px' }}>
-              <div style={style.company}>{exp.company}</div>
-              <div style={style.role}>{exp.role} | {exp.period}</div>
+              <div style={style.company}>{exp.empresa}</div>
+              <div style={style.role}>{exp.cargo} | {exp.periodo}</div>
               <ul style={style.highlight}>
-                {exp.highlights.map((h, j) => (
+                {exp.realizacoes.map((h, j) => (
                   <li key={j} style={{ marginBottom: '4px' }}>{h}</li>
                 ))}
               </ul>
@@ -106,46 +106,46 @@ export function ResumePreviewATS({ data }: ResumePreviewATSProps) {
         </>
       )}
 
-      {data.education.length > 0 && (
+      {data.educacao.length > 0 && (
         <>
           <h2 style={style.sectionTitle}>Formação Acadêmica</h2>
-          {data.education.map((edu, i) => (
+          {data.educacao.map((edu, i) => (
             <div key={i} style={{ marginBottom: '8px' }}>
-              <div style={style.company}>{edu.institution}</div>
-              <div style={style.role}>{edu.degree} em {edu.field} | {edu.period}</div>
+              <div style={style.company}>{edu.instituicao}</div>
+              <div style={style.role}>{edu.grau} em {edu.curso} | {edu.periodo}</div>
             </div>
           ))}
         </>
       )}
 
-      {data.skills.length > 0 && (
+      {data.habilidades.length > 0 && (
         <>
           <h2 style={style.sectionTitle}>Habilidades</h2>
           <div>
-            {data.skills.map((skill, i) => (
+            {data.habilidades.map((skill, i) => (
               <span key={i} style={style.skillTag}>{skill}</span>
             ))}
           </div>
         </>
       )}
 
-      {data.languages.length > 0 && (
+      {data.idiomas.length > 0 && (
         <>
           <h2 style={style.sectionTitle}>Idiomas</h2>
-          {data.languages.map((lang, i) => (
+          {data.idiomas.map((lang, i) => (
             <div key={i} style={style.role}>
-              {lang.language} — {lang.level}
+              {lang.idioma} — {lang.nivel}
             </div>
           ))}
         </>
       )}
 
-      {data.certifications.length > 0 && (
+      {data.certificacoes.length > 0 && (
         <>
           <h2 style={style.sectionTitle}>Certificações</h2>
-          {data.certifications.map((cert, i) => (
+          {data.certificacoes.map((cert, i) => (
             <div key={i} style={style.role}>
-              {cert.name} — {cert.issuer} ({cert.year})
+              {cert.nome} — {cert.instituicao} ({cert.ano})
             </div>
           ))}
         </>

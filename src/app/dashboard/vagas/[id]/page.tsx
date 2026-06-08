@@ -195,7 +195,7 @@ export default function VagaDetalhePage() {
                     >
                       {r.originalFileName}
                       {pronto ? (
-                        <span className="text-xs opacity-60">— {r.parsedData!.personal.name}</span>
+                        <span className="text-xs opacity-60">— {r.parsedData!.personal.nome}</span>
                       ) : (
                         <span className="text-xs text-warning">Processando…</span>
                       )}

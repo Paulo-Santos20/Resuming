@@ -239,6 +239,7 @@ async function processInBackground(
 
       if (response.ok) {
         const { data }: { data: ResumeData } = await response.json()
+        console.log('[processInBackground] Gemini data:', JSON.stringify(data, null, 2))
         ctx.updateProgress(resumeId, 90)
 
         await updateDoc(doc(db, 'users', uid, 'resumes', resumeId), {
@@ -247,8 +248,8 @@ async function processInBackground(
           updatedAt: Date.now(),
         })
 
-        const name = data.personal?.name || guessName(originalFileName)
-        const skillsCount = data.skills?.length ?? 0
+        const name = data.personal?.nome || guessName(originalFileName)
+        const skillsCount = data.habilidades?.length ?? 0
         ctx.complete(resumeId, name, skillsCount)
         toastSuccess('Currículo processado', `${name} — ${skillsCount} habilidades`)
         return
