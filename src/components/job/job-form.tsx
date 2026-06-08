@@ -33,10 +33,16 @@ export function JobForm({ onSubmit, loading }: JobFormProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!title.trim()) return
-    await onSubmit(title.trim(), description, photoFile || undefined)
-    setTitle('')
-    setDescription('')
-    setPhotoFile(null)
+    try {
+      const result = await onSubmit(title.trim(), description, photoFile || undefined)
+      if (result) {
+        setTitle('')
+        setDescription('')
+        setPhotoFile(null)
+      }
+    } catch {
+      // Error toast is handled by the parent page
+    }
   }
 
   return (

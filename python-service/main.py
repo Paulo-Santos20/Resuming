@@ -1,10 +1,10 @@
 import os
 import json
-import base64
 import io
 import urllib.request
+from urllib.parse import urlparse
 from typing import Optional
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Header
 from pydantic import BaseModel
 from google import genai
 from google.genai import types
@@ -12,6 +12,40 @@ from weasyprint import HTML
 from fastapi.responses import Response
 
 app = FastAPI(title="Resume React - Python Service")
+
+_firebase_initialized = False
+
+def init_firebase():
+    global _firebase_initialized
+    if _firebase_initialized:
+        return True
+    try:
+        import firebase_admin
+        from firebase_admin import credentials
+        key_path = os.environ.get("FIREBASE_ADMIN_KEY_PATH")
+        if key_path and os.path.exists(key_path):
+            cred = credentials.Certificate(key_path)
+            firebase_admin.initialize_app(cred)
+        else:
+            firebase_admin.initialize_app()
+        _firebase_initialized = True
+        return True
+    except Exception:
+        return False
+
+def verify_firebase_token(authorization: Optional[str]) -> Optional[str]:
+    if not _firebase_initialized:
+        if not init_firebase():
+            return None
+    if not authorization or not authorization.startswith("Bearer "):
+        return None
+    token = authorization.split("Bearer ")[1]
+    try:
+        from firebase_admin import auth
+        decoded = auth.verify_id_token(token)
+        return decoded.get("uid")
+    except Exception:
+        return None
 
 _ocr_instance = None
 
@@ -109,12 +143,52 @@ def extract_json_from_response(text: str) -> dict:
     return json.loads(text)
 
 
+MAX_DOWNLOAD_BYTES = 50 * 1024 * 1024
+ALLOWED_IMAGE_DIMENSIONS = (4000, 4000)
+
+ALLOWED_MAGIC_BYTES = {
+    "pdf": (b"%PDF", 5),
+    "png": (b"\x89PNG", 4),
+    "jpeg": (b"\xff\xd8\xff", 3),
+    "webp": (b"RIFF", 4),
+}
+
+def validate_url_scheme(url: str):
+    parsed = urlparse(url)
+    if parsed.scheme != "https":
+        raise HTTPException(
+            status_code=400, detail="Apenas URLs HTTPS são permitidas"
+        )
+
 def download_file(url: str) -> bytes:
+    validate_url_scheme(url)
     try:
-        with urllib.request.urlopen(url, timeout=60) as response:
-            return response.read()
+        with urllib.request.urlopen(url, timeout=30) as response:
+            content = response.read(MAX_DOWNLOAD_BYTES + 1)
+            if len(content) > MAX_DOWNLOAD_BYTES:
+                raise HTTPException(
+                    status_code=413,
+                    detail="Arquivo excede o limite de 50MB",
+                )
+            return content
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"Erro ao baixar arquivo: {str(e)}")
+
+def validate_pdf_magic(data: bytes):
+    magic, length = ALLOWED_MAGIC_BYTES["pdf"]
+    if not data.startswith(magic):
+        raise HTTPException(
+            status_code=422, detail="Arquivo não é um PDF válido"
+        )
+
+def validate_image_dimensions(image) -> None:
+    if image.width > ALLOWED_IMAGE_DIMENSIONS[0] or image.height > ALLOWED_IMAGE_DIMENSIONS[1]:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Imagem muito grande (máx {ALLOWED_IMAGE_DIMENSIONS[0]}x{ALLOWED_IMAGE_DIMENSIONS[1]}px)",
+        )
 
 
 @app.get("/health")
@@ -126,6 +200,7 @@ async def health():
 async def parse_resume(req: ParseResumeRequest):
     try:
         pdf_bytes = download_file(req.fileUrl)
+        validate_pdf_magic(pdf_bytes)
         extracted_text = ""
 
         try:
@@ -215,7 +290,9 @@ async def ocr_job(req: OcrJobRequest):
         image_io = io.BytesIO(image_bytes)
 
         from PIL import Image
+        Image.MAX_IMAGE_PIXELS = ALLOWED_IMAGE_DIMENSIONS[0] * ALLOWED_IMAGE_DIMENSIONS[1] * 4
         image = Image.open(image_io)
+        validate_image_dimensions(image)
         ocr = get_ocr()
         result = ocr.ocr(image, cls=True)
 

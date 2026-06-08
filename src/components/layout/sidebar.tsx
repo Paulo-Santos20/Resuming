@@ -102,14 +102,13 @@ export function Sidebar({ onLogout, userName, userEmail, mobile, onClose }: Side
           </div>
 
           {/* Nav */}
-          <nav className="flex-1 space-y-1 px-3 py-4" role="menubar" aria-label="Navegação principal">
+          <nav className="flex-1 space-y-1 px-3 py-4" aria-label="Navegação principal">
             {navItems.map((item) => {
               const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
               return (
                 <Link
                   key={item.href}
                   href={item.href}
-                  role="menuitem"
                   className={cn(
                     'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
                     isActive

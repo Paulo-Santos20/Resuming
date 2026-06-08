@@ -9,7 +9,10 @@ import { useJobs } from '@/hooks/use-jobs'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { EmailComposer } from '@/components/email/email-composer'
+import dynamic from 'next/dynamic'
+const EmailComposer = dynamic(() => import('@/components/email/email-composer').then(m => m.EmailComposer), {
+  loading: () => <div className="h-64 animate-pulse rounded-lg bg-[--color-secondary]" />,
+})
 import { ArrowLeft, RefreshCw } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'

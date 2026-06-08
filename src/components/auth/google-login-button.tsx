@@ -16,7 +16,7 @@ export function GoogleLoginButton() {
   return (
     <div className="flex flex-col items-center gap-4">
       <Button
-        onClick={login}
+        onClick={() => { login().catch(() => {}) }}
         disabled={loading}
         size="lg"
         className="flex items-center gap-3 bg-[--color-card] text-[--color-foreground] border border-[--color-border] hover:bg-[--color-secondary] shadow-sm min-w-[280px]"

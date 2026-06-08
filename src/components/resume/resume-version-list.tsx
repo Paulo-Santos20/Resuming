@@ -4,6 +4,7 @@ import { formatDate } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Eye, Download } from 'lucide-react'
+import { getAuthInstance } from '@/lib/firebase'
 import type { ResumeVersion } from '@/types'
 
 interface ResumeVersionListProps {
@@ -14,9 +15,12 @@ interface ResumeVersionListProps {
 export function ResumeVersionList({ versions, onPreview }: ResumeVersionListProps) {
   const handleDownload = async (version: ResumeVersion) => {
     try {
+      const idToken = await getAuthInstance().currentUser?.getIdToken()
+      if (!idToken) throw new Error('Token de autenticação não disponível')
+
       const response = await fetch('/api/python/generate-pdf', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` },
         body: JSON.stringify({ htmlContent: version.content }),
       })
       if (!response.ok) throw new Error('Erro ao gerar PDF')

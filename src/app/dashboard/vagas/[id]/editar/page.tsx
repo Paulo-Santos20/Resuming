@@ -14,6 +14,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { ArrowLeft, Save, Eye, FileEdit } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { toastSuccess, toastError } from '@/lib/toast'
+import { sanitizeHtml } from '@/lib/sanitize'
 import type { JobDescription } from '@/types'
 
 export default function EditarCurriculoPage() {
@@ -119,7 +120,7 @@ export default function EditarCurriculoPage() {
               {content ? (
                 <div
                   className="prose prose-sm max-w-none border rounded-lg p-8 bg-white"
-                  dangerouslySetInnerHTML={{ __html: content }}
+                  dangerouslySetInnerHTML={{ __html: sanitizeHtml(content) }}
                 />
               ) : (
                 <div className="text-center py-12 text-muted-foreground">
