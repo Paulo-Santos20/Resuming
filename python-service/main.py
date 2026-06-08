@@ -213,6 +213,26 @@ def extract_json_from_response(text: str) -> dict:
     return json.loads(text)
 
 
+def normalizar_resume_data(data: dict) -> dict:
+    if "personal" not in data:
+        personal = {}
+        for chave in ("nome", "email", "telefone", "linkedin", "endereco", "resumo", "resumoProfissional"):
+            if chave in data:
+                personal["resumo" if chave == "resumoProfissional" else chave] = data.pop(chave)
+        data["personal"] = personal
+    if "experiencias" in data and "experiencia" not in data:
+        data["experiencia"] = data.pop("experiencias")
+    if "educacao" not in data and "formacao" in data:
+        data["educacao"] = data.pop("formacao")
+    if "idiomas" not in data and "linguas" in data:
+        data["idiomas"] = data.pop("linguas")
+    if "certificacoes" not in data and "certificados" in data:
+        data["certificacoes"] = data.pop("certificados")
+    for campo in ("personal", "experiencia", "educacao", "habilidades", "idiomas", "certificacoes"):
+        data.setdefault(campo, {} if campo == "personal" else [])
+    return data
+
+
 MAX_DOWNLOAD_BYTES = 50 * 1024 * 1024
 ALLOWED_IMAGE_DIMENSIONS = (4000, 4000)
 
@@ -318,6 +338,7 @@ Retorne APENAS o JSON, sem formatação markdown."""
         print(response.text[:2000])
 
         data = extract_json_from_response(response.text)
+        data = normalizar_resume_data(data)
         return {"success": True, "data": data}
     except HTTPException:
         raise
