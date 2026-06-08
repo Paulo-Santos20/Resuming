@@ -26,6 +26,8 @@ export default function EditarCurriculoPage() {
   const [saving, setSaving] = useState(false)
   const [loading, setLoading] = useState(true)
 
+  useEffect(() => { document.title = 'Editar Currículo — Resume React' }, [])
+
   useEffect(() => {
     if (!user?.uid || !id) return
     const load = async () => {
@@ -78,7 +80,7 @@ export default function EditarCurriculoPage() {
   return (
     <div className="max-w-4xl mx-auto space-y-8">
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => router.back()}>
+        <Button variant="ghost" size="icon" onClick={() => router.back()} aria-label="Voltar">
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div>
@@ -105,8 +107,9 @@ export default function EditarCurriculoPage() {
 
             <TabsContent value="edit">
               <div className="space-y-4">
-                <Label>Conteúdo do Currículo (HTML)</Label>
+                <Label htmlFor="edit-content">Conteúdo do Currículo (HTML)</Label>
                 <Textarea
+                  id="edit-content"
                   value={content}
                   onChange={(e) => setContent(e.target.value)}
                   rows={24}
@@ -119,7 +122,7 @@ export default function EditarCurriculoPage() {
             <TabsContent value="preview">
               {content ? (
                 <div
-                  className="prose prose-sm max-w-none border rounded-lg p-8 bg-white"
+                  className="prose prose-sm max-w-none border rounded-lg p-8 bg-card"
                   dangerouslySetInnerHTML={{ __html: sanitizeHtml(content) }}
                 />
               ) : (
@@ -134,12 +137,12 @@ export default function EditarCurriculoPage() {
       </Card>
 
       <div className="flex justify-end gap-3">
-        <Button variant="outline" onClick={() => router.back()}>
+        <Button variant="outline" onClick={() => router.back()} aria-label="Cancelar e voltar">
           Cancelar
         </Button>
         <Button onClick={handleSave} disabled={saving}>
           {saving ? (
-            <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent mr-2" />
+            <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent mr-2" />
           ) : (
             <Save className="h-4 w-4 mr-2" />
           )}

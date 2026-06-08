@@ -32,6 +32,8 @@ export default function VagaDetalhePage() {
   const [generating, setGenerating] = useState(false)
   const [loading, setLoading] = useState(true)
 
+  useEffect(() => { document.title = job ? `${job.title} — Resume React` : 'Vaga — Resume React' }, [job])
+
   useEffect(() => {
     if (user?.uid) fetchResumes()
   }, [user?.uid, fetchResumes])
@@ -54,7 +56,8 @@ export default function VagaDetalhePage() {
 
   useEffect(() => {
     if (resumes.length > 0 && !selectedResumeId) {
-      setSelectedResumeId(resumes[0].id)
+      const firstProcessed = resumes.find((r) => r.parsedData)
+      if (firstProcessed) setSelectedResumeId(firstProcessed.id)
     }
   }, [resumes, selectedResumeId])
 
@@ -129,7 +132,7 @@ export default function VagaDetalhePage() {
       {/* Header */}
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" asChild>
+          <Button variant="ghost" size="icon" asChild aria-label="Voltar para vagas">
             <Link href="/dashboard/vagas">
               <ArrowLeft className="h-4 w-4" />
             </Link>
@@ -165,7 +168,7 @@ export default function VagaDetalhePage() {
         </CardHeader>
         <CardContent>
           {resumes.length === 0 ? (
-            <div className="text-center py-6 text-[--color-muted-foreground]">
+            <div className="text-center py-6 text-muted-foreground">
               <p>Nenhum currículo encontrado.</p>
               <Button asChild className="mt-3">
                 <Link href="/dashboard/curriculo">Enviar currículo</Link>
@@ -174,38 +177,61 @@ export default function VagaDetalhePage() {
           ) : (
             <div className="space-y-4">
               <div className="flex flex-wrap gap-3">
-                {resumes.slice(0, 5).map((r) => (
-                  <button
-                    key={r.id}
-                    type="button"
-                    onClick={() => setSelectedResumeId(r.id)}
-                    className={cn(
-                      'flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-medium transition-colors',
-                      selectedResumeId === r.id
-                        ? 'border-[--color-primary] bg-[--color-primary]/5 text-[--color-primary]'
-                        : 'border-[--color-border] text-[--color-muted-foreground] hover:border-[--color-primary]/50'
-                    )}
-                  >
-                    {r.originalFileName}
-                    {r.parsedData && (
-                      <span className="text-xs opacity-60">— {r.parsedData.personal.name}</span>
-                    )}
-                  </button>
-                ))}
+                {resumes.slice(0, 5).map((r) => {
+                  const pronto = !!r.parsedData
+                  return (
+                    <button
+                      key={r.id}
+                      type="button"
+                      disabled={!pronto}
+                      onClick={() => setSelectedResumeId(r.id)}
+                      className={cn(
+                        'flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-medium transition-colors',
+                        !pronto && 'opacity-50 cursor-not-allowed',
+                        selectedResumeId === r.id
+                          ? 'border-primary bg-primary/5 text-primary'
+                          : 'border-border text-muted-foreground hover:border-primary/50'
+                      )}
+                    >
+                      {r.originalFileName}
+                      {pronto ? (
+                        <span className="text-xs opacity-60">— {r.parsedData!.personal.name}</span>
+                      ) : (
+                        <span className="text-xs text-warning">Processando…</span>
+                      )}
+                    </button>
+                  )
+                })}
               </div>
 
               <div className="flex items-center gap-3 pt-2">
-                <Button
-                  onClick={handleGenerateVersions}
-                  disabled={generating || !selectedResumeId}
-                >
-                  {generating ? (
-                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-[--color-primary-foreground] border-t-transparent mr-2" />
-                  ) : (
-                    <Sparkles className="h-4 w-4 mr-2" />
-                  )}
-                  {generating ? 'Gerando…' : 'Gerar 2 Versões'}
-                </Button>
+                {(() => {
+                  const selectedResume = resumes.find((r) => r.id === selectedResumeId)
+                  const resumePronto = !!selectedResume?.parsedData
+                  let btnText = 'Gerar 2 Versões'
+                  let disabled = generating || !selectedResumeId
+                  if (!selectedResumeId) {
+                    btnText = 'Selecione um currículo'
+                  } else if (!resumePronto) {
+                    btnText = 'Aguardando processamento…'
+                    disabled = true
+                  } else if (generating) {
+                    btnText = 'Gerando…'
+                  }
+                  return (
+                    <Button
+                      onClick={handleGenerateVersions}
+                      disabled={disabled}
+                    >
+                      {generating ? (
+                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent mr-2" />
+                      ) : (
+                        <Sparkles className="h-4 w-4 mr-2" />
+                      )}
+                      {btnText}
+                    </Button>
+                  )
+                })()}
               </div>
             </div>
           )}
@@ -230,7 +256,7 @@ export default function VagaDetalhePage() {
           {/* Version ATS */}
           <Card className={cn(
             'relative transition-shadow',
-            chosenVersion === 'ats' && 'ring-2 ring-[--color-primary] shadow-lg'
+            chosenVersion === 'ats' && 'ring-2 ring-primary shadow-lg'
           )}>
             <CardHeader className="flex flex-row items-center justify-between">
               <div className="flex items-center gap-2">
@@ -238,7 +264,7 @@ export default function VagaDetalhePage() {
                 <Badge variant="default">ATS</Badge>
               </div>
               {chosenVersion === 'ats' ? (
-                <div className="flex items-center gap-1 text-sm text-[--color-success] font-medium">
+                <div className="flex items-center gap-1 text-sm text-success font-medium">
                   <Check className="h-4 w-4" />
                   Selecionado
                 </div>
@@ -260,7 +286,7 @@ export default function VagaDetalhePage() {
                   dangerouslySetInnerHTML={{ __html: sanitizeHtml(versionAts) }}
                 />
               ) : (
-                <div className="text-center py-8 text-[--color-muted-foreground]">
+                <div className="text-center py-8 text-muted-foreground">
                   <Skeleton className="h-32 w-full rounded-lg" />
                 </div>
               )}
@@ -270,7 +296,7 @@ export default function VagaDetalhePage() {
           {/* Version Original */}
           <Card className={cn(
             'relative transition-shadow',
-            chosenVersion === 'original' && 'ring-2 ring-[--color-primary] shadow-lg'
+            chosenVersion === 'original' && 'ring-2 ring-primary shadow-lg'
           )}>
             <CardHeader className="flex flex-row items-center justify-between">
               <div className="flex items-center gap-2">
@@ -278,7 +304,7 @@ export default function VagaDetalhePage() {
                 <Badge variant="secondary">Original</Badge>
               </div>
               {chosenVersion === 'original' ? (
-                <div className="flex items-center gap-1 text-sm text-[--color-success] font-medium">
+                <div className="flex items-center gap-1 text-sm text-success font-medium">
                   <Check className="h-4 w-4" />
                   Selecionado
                 </div>
@@ -300,7 +326,7 @@ export default function VagaDetalhePage() {
                   dangerouslySetInnerHTML={{ __html: sanitizeHtml(versionOriginal) }}
                 />
               ) : (
-                <div className="text-center py-8 text-[--color-muted-foreground]">
+                <div className="text-center py-8 text-muted-foreground">
                   <Skeleton className="h-32 w-full rounded-lg" />
                 </div>
               )}

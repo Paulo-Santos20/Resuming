@@ -35,14 +35,15 @@ export function ResumeUpload({ onUpload, loading }: ResumeUploadProps) {
       await onUpload(file)
       setFile(null)
     } catch (err) {
-      setError('Erro ao processar currículo. Verifique o arquivo e tente novamente.')
+      const msg = err instanceof Error ? err.message : 'Erro ao enviar currículo'
+      setError(msg)
     }
   }
 
   return (
     <div className="space-y-4">
       {error && (
-        <div className="rounded-lg bg-[--color-destructive-bg] border border-[--color-destructive-border] p-3 text-sm text-[--color-destructive-text]">
+        <div className="rounded-lg bg-destructive-bg border border-destructive-border p-3 text-sm text-destructive-text" role="alert">
           {error}
         </div>
       )}
@@ -52,20 +53,20 @@ export function ResumeUpload({ onUpload, loading }: ResumeUploadProps) {
         className={cn(
           'relative flex flex-col items-center justify-center rounded-xl border-2 border-dashed p-12 transition-colors cursor-pointer',
           isDragActive
-            ? 'border-[--color-brand] bg-[--color-brand]/5'
-            : 'border-border hover:border-[--color-brand]/50 hover:bg-secondary/50'
+            ? 'border-brand bg-brand/5'
+            : 'border-border hover:border-brand/50 hover:bg-secondary/50'
         )}
       >
         <input {...getInputProps()} />
         {isDragActive ? (
           <>
-            <Upload className="h-10 w-10 text-[--color-brand] mb-4" />
-            <p className="font-medium text-[--color-brand]">Solte o PDF aqui</p>
+            <Upload className="h-10 w-10 text-brand mb-4" />
+            <p className="font-medium text-brand">Solte o PDF aqui</p>
           </>
         ) : (
           <>
-            <div className="rounded-full bg-[--color-brand]/10 p-4 mb-4">
-              <File className="h-8 w-8 text-[--color-brand]" />
+            <div className="rounded-full bg-brand/10 p-4 mb-4">
+              <File className="h-8 w-8 text-brand" />
             </div>
             <p className="font-medium">Arraste seu currículo PDF aqui</p>
             <p className="text-sm text-muted-foreground mt-1">
@@ -78,7 +79,7 @@ export function ResumeUpload({ onUpload, loading }: ResumeUploadProps) {
       {file && (
         <div className="flex items-center justify-between rounded-lg border p-4 bg-card">
           <div className="flex items-center gap-3 min-w-0">
-            <File className="h-5 w-5 text-[--color-brand] shrink-0" />
+            <File className="h-5 w-5 text-brand shrink-0" />
             <div className="min-w-0">
               <p className="text-sm font-medium truncate">{file.name}</p>
               <p className="text-xs text-muted-foreground">
@@ -92,6 +93,7 @@ export function ResumeUpload({ onUpload, loading }: ResumeUploadProps) {
               size="icon"
               onClick={() => setFile(null)}
               disabled={loading}
+              aria-label="Remover arquivo"
             >
               <X className="h-4 w-4" />
             </Button>

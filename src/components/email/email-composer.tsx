@@ -54,7 +54,7 @@ export function EmailComposer({
   return (
     <form onSubmit={handleSend} className="space-y-6">
       {error && (
-        <div className="rounded-lg bg-[--color-destructive-bg] border border-[--color-destructive-border] p-3 text-sm text-[--color-destructive-text]">
+        <div className="rounded-lg bg-destructive-bg border border-destructive-border p-3 text-sm text-destructive-text" role="alert">
           {error}
         </div>
       )}

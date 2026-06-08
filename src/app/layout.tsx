@@ -1,10 +1,28 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Toaster } from 'sonner'
+import { Providers } from '@/components/providers'
 import './globals.css'
 
 export const metadata: Metadata = {
   title: 'Resume React — Currículos Inteligentes',
   description: 'Crie currículos otimizados para cada vaga com IA',
+  icons: {
+    icon: '/favicon.svg',
+  },
+  openGraph: {
+    title: 'Resume React',
+    description: 'Crie currículos otimizados para cada vaga com IA',
+    siteName: 'Resume React',
+    locale: 'pt_BR',
+    type: 'website',
+  },
+}
+
+export const viewport: Viewport = {
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#f8f6f3' },
+    { media: '(prefers-color-scheme: dark)', color: '#111318' },
+  ],
 }
 
 const DARK_MODE_SCRIPT = `
@@ -25,10 +43,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <link rel="preconnect" href="https://api.fontshare.com" crossOrigin="anonymous" />
         <link rel="preconnect" href="https://firebasestorage.googleapis.com" crossOrigin="anonymous" />
+        <link rel="apple-touch-icon" href="/favicon.svg" />
+        <link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&f[]=dm-sans@400,500&display=swap" />
         <script dangerouslySetInnerHTML={{ __html: DARK_MODE_SCRIPT }} />
       </head>
       <body className="antialiased">
-        {children}
+        <Providers>
+          {children}
+        </Providers>
         <Toaster
           position="top-right"
           richColors

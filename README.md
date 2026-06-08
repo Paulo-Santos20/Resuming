@@ -9,7 +9,7 @@ Aplicação web para criar currículos otimizados para cada vaga com IA.
 - **Auth:** Firebase Authentication (Google Provider)
 - **Database:** Firestore
 - **Storage:** Firebase Storage
-- **AI:** Google Gemini 2.0 Flash
+- **AI:** Google Gemini (via google-genai SDK com retry automático)
 - **OCR:** PaddleOCR PP-StructureV3
 - **PDF:** WeasyPrint (HTML → PDF)
 - **Email:** Gmail API
@@ -77,4 +77,12 @@ python-service/
 ├── Dockerfile        # Container para Cloud Run
 ├── deploy.sh         # Deploy script
 └── requirements.txt  # Python dependencies
+```
+
+## Firebase Storage Rules
+
+O arquivo `storage.rules` na raiz deve ser deployado para o Firebase:
+
+```bash
+npx firebase deploy --only storage
 ```

@@ -1,4 +1,3 @@
-@import url('https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&f[]=dm-sans@400,500&display=swap');
 @import "tailwindcss";
 
 @custom-variant dark (&:is(.dark *));
@@ -11,8 +10,8 @@
   --sidebar-collapsed-width: 4rem;
   --color-brand: #1a3c5e;
   --color-brand-light: #2a5a8a;
-  --color-accent: #e8634a;
-  --color-accent-light: #f0806a;
+  --color-accent: #d4513a;
+  --color-accent-light: #e0705a;
   --color-accent-foreground: #ffffff;
   --color-surface: #f8f6f3;
   --color-surface-alt: #f0ede8;
@@ -46,49 +45,13 @@
   --color-warning-border: #fde68a;
 }
 
-:root {
-  --color-brand: #1a3c5e;
-  --color-brand-light: #2a5a8a;
-  --color-accent: #e8634a;
-  --color-accent-light: #f0806a;
-  --color-surface: #f8f6f3;
-  --color-surface-alt: #f0ede8;
-  --color-text: #1a1a1a;
-  --color-text-secondary: #5a5a5a;
-  --color-border: #e5e2dd;
-  --color-background: #f8f6f3;
-  --color-foreground: #1a1a1a;
-  --color-card: #ffffff;
-  --color-card-foreground: #1a1a1a;
-  --color-popover: #ffffff;
-  --color-popover-foreground: #1a1a1a;
-  --color-primary: #1a3c5e;
-  --color-primary-foreground: #ffffff;
-  --color-secondary: #f0ede8;
-  --color-secondary-foreground: #1a1a1a;
-  --color-muted: #9ca3af;
-  --color-muted-foreground: #5a5a5a;
-  --color-accent-foreground: #ffffff;
-  --color-destructive: #c62828;
-  --color-destructive-foreground: #ffffff;
-  --color-destructive-bg: #fef2f2;
-  --color-destructive-border: #fecaca;
-  --color-destructive-text: #991b1b;
-  --color-input: #e5e2dd;
-  --color-ring: #1a3c5e;
-  --color-success: #15803d;
-  --color-success-bg: #f0fdf4;
-  --color-success-border: #bbf7d0;
-  --color-warning: #b45309;
-  --color-warning-bg: #fffbeb;
-  --color-warning-border: #fde68a;
-}
+
 
 .dark {
   --color-brand: #6fa8dc;
   --color-brand-light: #8bc4f0;
-  --color-accent: #f0806a;
-  --color-accent-light: #f5a090;
+  --color-accent: #e0604a;
+  --color-accent-light: #d0604a;
   --color-surface: #111318;
   --color-surface-alt: #1a1d27;
   --color-text: #e5e5e5;

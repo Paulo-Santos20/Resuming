@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import dynamic from 'next/dynamic'
 const EmailComposer = dynamic(() => import('@/components/email/email-composer').then(m => m.EmailComposer), {
-  loading: () => <div className="h-64 animate-pulse rounded-lg bg-[--color-secondary]" />,
+  loading: () => <div className="h-64 animate-pulse rounded-lg bg-secondary" />,
 })
 import { ArrowLeft, RefreshCw } from 'lucide-react'
 import Link from 'next/link'
@@ -29,6 +29,8 @@ export default function EmailVagaPage() {
   const [sending, setSending] = useState(false)
   const [generating, setGenerating] = useState(false)
   const [loading, setLoading] = useState(true)
+
+  useEffect(() => { document.title = 'Enviar E-mail — Resume React' }, [])
 
   const chosenType = typeof window !== 'undefined'
     ? (sessionStorage.getItem(`chosen-${id}`) || 'ats')
@@ -119,7 +121,7 @@ export default function EmailVagaPage() {
   }
 
   if (loading) {
-    return <div className="flex items-center justify-center h-64 text-[--color-muted-foreground]">Carregando…</div>
+    return <div className="flex items-center justify-center h-64 text-muted-foreground">Carregando…</div>
   }
 
   if (!job) {
@@ -136,14 +138,14 @@ export default function EmailVagaPage() {
   return (
     <div className="max-w-4xl mx-auto space-y-8">
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" asChild>
+        <Button variant="ghost" size="icon" asChild aria-label="Voltar para vaga">
           <Link href={`/dashboard/vagas/${id}`}>
             <ArrowLeft className="h-4 w-4" />
           </Link>
         </Button>
         <div>
           <h1 className="font-display text-2xl font-bold">Enviar Email</h1>
-          <p className="text-[--color-muted-foreground] mt-1">
+          <p className="text-muted-foreground mt-1">
             Candidatura para {job.title}
           </p>
         </div>
@@ -151,8 +153,8 @@ export default function EmailVagaPage() {
 
       {/* Google token warning */}
       {!googleAccessToken && (
-        <div className="flex items-center gap-3 rounded-lg border border-[--color-warning-border] bg-[--color-warning-bg] px-4 py-3 text-sm">
-          <span className="text-[--color-warning]">
+        <div className="flex items-center gap-3 rounded-lg border border-warning-border bg-warning-bg px-4 py-3 text-sm">
+          <span className="text-warning">
             Conexão com o Gmail expirou. Reconecte sua conta para enviar emails.
           </span>
           <Button
@@ -185,7 +187,7 @@ export default function EmailVagaPage() {
           </CardHeader>
           <CardContent>
             <div
-              className="prose prose-sm max-w-none max-h-80 overflow-y-auto border rounded-lg p-6 bg-[--color-card]"
+              className="prose prose-sm max-w-none max-h-80 overflow-y-auto border rounded-lg p-6 bg-card"
               dangerouslySetInnerHTML={{ __html: sanitizeHtml(resumeHtml) }}
             />
           </CardContent>
@@ -198,7 +200,7 @@ export default function EmailVagaPage() {
         </CardHeader>
         <CardContent>
           {!googleAccessToken ? (
-            <div className="text-center py-8 text-[--color-muted-foreground]">
+            <div className="text-center py-8 text-muted-foreground">
               <p className="mb-4">Conecte sua conta Gmail para enviar emails.</p>
               <Button onClick={refreshGoogleToken}>
                 <RefreshCw className="h-4 w-4 mr-2" />

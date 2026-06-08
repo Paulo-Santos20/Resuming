@@ -14,6 +14,8 @@ export default function DashboardPage() {
   const { resumes, loading: resumeLoading, uploadResume, fetchResumes } = useResume(user?.uid)
   const { jobs, fetchJobs } = useJobs(user?.uid)
 
+  useEffect(() => { document.title = 'Visão Geral — Resume React' }, [])
+
   useEffect(() => {
     if (user?.uid) {
       fetchResumes()

@@ -26,6 +26,48 @@ const navItems = [
   { href: '/dashboard/configuracoes', label: 'Configurações', icon: Settings },
 ]
 
+interface UserAvatarProps {
+  photoURL?: string | null
+  userName: string
+  size?: 'sm' | 'md' | 'lg'
+}
+
+function UserAvatar({ photoURL, userName, size = 'md' }: UserAvatarProps) {
+  const sizeMap = { sm: 28, md: 36, lg: 40 }
+  const px = sizeMap[size]
+  const [imgError, setImgError] = useState(false)
+  const initial = userName?.charAt(0)?.toUpperCase() || '?'
+
+  useEffect(() => {
+    setImgError(false)
+  }, [photoURL])
+
+  if (photoURL && !imgError) {
+    return (
+      <div
+        className="shrink-0 rounded-full overflow-hidden"
+        style={{ width: px, height: px, minWidth: px, minHeight: px }}
+      >
+        <img
+          src={photoURL}
+          alt={userName}
+          className="h-full w-full object-cover"
+          onError={() => setImgError(true)}
+        />
+      </div>
+    )
+  }
+
+  return (
+    <div
+      className="flex shrink-0 items-center justify-center rounded-full bg-accent text-accent-foreground font-bold shadow-sm"
+      style={{ width: px, height: px, minWidth: px, minHeight: px }}
+    >
+      <span className={cn(size === 'sm' ? 'text-xs' : 'text-sm')}>{initial}</span>
+    </div>
+  )
+}
+
 interface SidebarProps {
   onLogout: () => void
   userName: string
@@ -39,7 +81,6 @@ export function Sidebar({ onLogout, userName, userEmail, photoURL, mobile, onClo
   const pathname = usePathname()
   const { sidebarOpen, toggleSidebar, toggleDarkMode, darkMode } = useUIStore()
   const collapsed = !sidebarOpen && !mobile
-  const initial = userName?.charAt(0)?.toUpperCase() || '?'
   const sidebarRef = useRef<HTMLElement>(null)
   const [hoveredItem, setHoveredItem] = useState<string | null>(null)
 
@@ -63,41 +104,6 @@ export function Sidebar({ onLogout, userName, userEmail, photoURL, mobile, onClo
     return pathname === href || pathname.startsWith(href + '/')
   }
 
-  const UserAvatar = ({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) => {
-    const sizeMap = { sm: 28, md: 36, lg: 40 }
-    const px = sizeMap[size]
-    const [imgError, setImgError] = useState(false)
-
-    useEffect(() => {
-      setImgError(false)
-    }, [photoURL])
-
-    if (photoURL && !imgError) {
-      return (
-        <div
-          className="shrink-0 rounded-full overflow-hidden"
-          style={{ width: px, height: px, minWidth: px, minHeight: px }}
-        >
-          <img
-            src={photoURL}
-            alt={userName}
-            className="h-full w-full object-cover"
-            onError={() => setImgError(true)}
-          />
-        </div>
-      )
-    }
-
-    return (
-      <div
-        className="flex shrink-0 items-center justify-center rounded-full bg-accent text-[--color-accent-foreground] font-bold shadow-sm"
-        style={{ width: px, height: px, minWidth: px, minHeight: px }}
-      >
-        <span className={cn(size === 'sm' ? 'text-xs' : 'text-sm')}>{initial}</span>
-      </div>
-    )
-  }
-
   const sidebarContent = (variant: 'desktop' | 'mobile') => {
     const isMobile = variant === 'mobile'
     return (
@@ -113,6 +119,7 @@ export function Sidebar({ onLogout, userName, userEmail, photoURL, mobile, onClo
                 onClick={toggleSidebar}
                 className="flex items-center justify-center rounded-xl bg-primary text-primary-foreground font-display font-bold h-7 w-7 text-xs cursor-pointer hover:opacity-90 transition-opacity"
                 title="Expandir menu"
+                aria-label="Expandir menu"
               >
                 R
               </button>
@@ -120,6 +127,7 @@ export function Sidebar({ onLogout, userName, userEmail, photoURL, mobile, onClo
                 onClick={toggleSidebar}
                 className="flex items-center justify-center h-5 w-5 text-muted-foreground hover:text-foreground transition-colors rounded"
                 title="Expandir menu"
+                aria-label="Expandir menu"
               >
                 <ChevronRight className="h-3 w-3" />
               </button>
@@ -135,7 +143,7 @@ export function Sidebar({ onLogout, userName, userEmail, photoURL, mobile, onClo
                   <p className="text-xs text-muted-foreground truncate leading-tight">Currículos inteligentes</p>
                 </div>
               </div>
-              <Button variant="ghost" size="icon" onClick={toggleSidebar} title="Recolher menu" className="shrink-0 -mr-1">
+              <Button variant="ghost" size="icon" onClick={toggleSidebar} title="Recolher menu" aria-label="Recolher menu" className="shrink-0 -mr-1">
                 <ChevronLeft className="h-4 w-4" />
               </Button>
             </>
@@ -208,7 +216,7 @@ export function Sidebar({ onLogout, userName, userEmail, photoURL, mobile, onClo
             'flex items-center gap-3 rounded-lg mx-3 mt-3 p-2.5',
             collapsed ? 'justify-center' : 'bg-secondary'
           )}>
-            <UserAvatar size={collapsed ? 'sm' : 'lg'} />
+            <UserAvatar photoURL={photoURL} userName={userName} size={collapsed ? 'sm' : 'lg'} />
             {!collapsed && (
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium truncate text-foreground">{userName || 'Usuário'}</p>
@@ -222,10 +230,10 @@ export function Sidebar({ onLogout, userName, userEmail, photoURL, mobile, onClo
             'p-3',
             collapsed && 'flex flex-col items-center gap-1'
           )}>
-            <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground h-8 w-8" onClick={toggleDarkMode} title={darkMode ? 'Modo claro' : 'Modo escuro'}>
+            <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground h-8 w-8" onClick={toggleDarkMode} title={darkMode ? 'Modo claro' : 'Modo escuro'} aria-label={darkMode ? 'Modo claro' : 'Modo escuro'}>
               {darkMode ? <Sun className="h-4 w-4 shrink-0" /> : <Moon className="h-4 w-4 shrink-0" />}
             </Button>
-            <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive h-8 w-8" onClick={onLogout} title="Sair">
+            <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive h-8 w-8" onClick={onLogout} title="Sair" aria-label="Sair">
               <LogOut className="h-4 w-4 shrink-0" />
             </Button>
           </div>
@@ -259,7 +267,7 @@ export function Sidebar({ onLogout, userName, userEmail, photoURL, mobile, onClo
           <div
             className="fixed inset-0 z-40"
             onClick={onClose}
-            role="presentation"
+            aria-hidden="true"
           />
           <aside
             ref={sidebarRef}

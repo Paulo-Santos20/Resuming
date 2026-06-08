@@ -30,9 +30,15 @@ export function JobForm({ onSubmit, loading }: JobFormProps) {
     },
   })
 
+  const [titleError, setTitleError] = useState(false)
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!title.trim()) return
+    if (!title.trim()) {
+      setTitleError(true)
+      return
+    }
+    setTitleError(false)
     try {
       const result = await onSubmit(title.trim(), description, photoFile || undefined)
       if (result) {
@@ -46,39 +52,49 @@ export function JobForm({ onSubmit, loading }: JobFormProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-6" noValidate>
       <div className="space-y-2">
         <Label htmlFor="title">Título da Vaga</Label>
         <Input
           id="title"
           value={title}
-          onChange={(e) => setTitle(e.target.value)}
+          onChange={(e) => { setTitle(e.target.value); setTitleError(false) }}
           placeholder="Ex: Engenheiro de Software Sênior"
-          required
+          aria-invalid={titleError}
+          aria-describedby={titleError ? 'title-error' : undefined}
           disabled={loading}
         />
+        {titleError && (
+          <p id="title-error" role="alert" className="text-xs text-destructive">
+            O título da vaga é obrigatório
+          </p>
+        )}
       </div>
 
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <Label>Descrição da Vaga</Label>
-          <div className="flex gap-1 rounded-lg border p-0.5">
+          <Label htmlFor={mode === 'text' ? 'descricao' : undefined}>Descrição da Vaga</Label>
+          <div className="flex gap-1 rounded-lg border p-0.5" role="tablist" aria-label="Modo de entrada">
             <button
               type="button"
+              role="tab"
+              aria-selected={mode === 'text'}
               onClick={() => { setMode('text'); setPhotoFile(null) }}
               className={cn(
                 'px-3 py-1 text-xs rounded-md transition-colors',
-                mode === 'text' ? 'bg-[--color-brand] text-white' : 'text-muted-foreground'
+                mode === 'text' ? 'bg-brand text-white' : 'text-muted-foreground'
               )}
             >
               Texto
             </button>
             <button
               type="button"
+              role="tab"
+              aria-selected={mode === 'photo'}
               onClick={() => setMode('photo')}
               className={cn(
                 'px-3 py-1 text-xs rounded-md transition-colors',
-                mode === 'photo' ? 'bg-[--color-brand] text-white' : 'text-muted-foreground'
+                mode === 'photo' ? 'bg-brand text-white' : 'text-muted-foreground'
               )}
             >
               Foto
@@ -88,6 +104,7 @@ export function JobForm({ onSubmit, loading }: JobFormProps) {
 
         {mode === 'text' ? (
           <Textarea
+            id="descricao"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Cole a descrição completa da vaga aqui…"
@@ -99,18 +116,19 @@ export function JobForm({ onSubmit, loading }: JobFormProps) {
             {...getRootProps()}
             className={cn(
               'flex flex-col items-center justify-center rounded-xl border-2 border-dashed p-8 transition-colors cursor-pointer',
-              isDragActive ? 'border-[--color-brand] bg-[--color-brand]/5' : 'border-border hover:border-[--color-brand]/50'
+              isDragActive ? 'border-brand bg-brand/5' : 'border-border hover:border-brand/50'
             )}
           >
-            <input {...getInputProps()} />
+            <input {...getInputProps()} aria-label="Selecionar foto da vaga" />
             {photoFile ? (
               <div className="flex items-center gap-3">
-                <Image className="h-5 w-5 text-[--color-brand]" />
+                <Image className="h-5 w-5 text-brand" />
                 <span className="text-sm">{photoFile.name}</span>
                 <Button
                   type="button"
                   variant="ghost"
                   size="icon"
+                  aria-label="Remover foto"
                   onClick={(e) => { e.stopPropagation(); setPhotoFile(null) }}
                 >
                   <X className="h-4 w-4" />
