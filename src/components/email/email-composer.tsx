@@ -10,7 +10,7 @@ import type { JobDescription } from '@/types'
 
 interface EmailComposerProps {
   job: JobDescription
-  onSend: (subject: string, body: string) => Promise<void>
+  onSend: (subject: string, body: string, to: string) => Promise<void>
   onGenerateEmail: () => Promise<{ subject: string; body: string }>
   loading: boolean
   generating: boolean
@@ -23,6 +23,7 @@ export function EmailComposer({
   loading,
   generating,
 }: EmailComposerProps) {
+  const [recipientEmail, setRecipientEmail] = useState('')
   const [subject, setSubject] = useState(
     `Candidatura — ${job.title}`
   )
@@ -44,7 +45,7 @@ export function EmailComposer({
     e.preventDefault()
     setError(null)
     try {
-      await onSend(subject, body)
+      await onSend(subject, body, recipientEmail)
     } catch (err) {
       setError('Erro ao enviar email')
     }
@@ -53,10 +54,22 @@ export function EmailComposer({
   return (
     <form onSubmit={handleSend} className="space-y-6">
       {error && (
-        <div className="rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-700">
+        <div className="rounded-lg bg-[--color-destructive-bg] border border-[--color-destructive-border] p-3 text-sm text-[--color-destructive-text]">
           {error}
         </div>
       )}
+
+      <div className="space-y-2">
+        <Label htmlFor="recipient">Destinatário</Label>
+        <Input
+          id="recipient"
+          type="email"
+          value={recipientEmail}
+          onChange={(e) => setRecipientEmail(e.target.value)}
+          placeholder="email@recrutador.com"
+          disabled={loading}
+        />
+      </div>
 
       <div className="space-y-2">
         <div className="flex items-center justify-between">

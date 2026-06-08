@@ -1,0 +1,21 @@
+import { toast } from 'sonner'
+
+export function toastSuccess(message: string, description?: string) {
+  toast.success(message, { description })
+}
+
+export function toastError(message: string, description?: string) {
+  toast.error(message, { description })
+}
+
+export function toastInfo(message: string, description?: string) {
+  toast.info(message, { description })
+}
+
+export function toastLoading(message: string) {
+  return toast.loading(message)
+}
+
+export function toastDismiss(id: string | number) {
+  toast.dismiss(id)
+}

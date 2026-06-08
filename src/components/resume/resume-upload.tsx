@@ -42,7 +42,7 @@ export function ResumeUpload({ onUpload, loading }: ResumeUploadProps) {
   return (
     <div className="space-y-4">
       {error && (
-        <div className="rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-700">
+        <div className="rounded-lg bg-[--color-destructive-bg] border border-[--color-destructive-border] p-3 text-sm text-[--color-destructive-text]">
           {error}
         </div>
       )}

@@ -1,7 +1,15 @@
 @import url('https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&f[]=dm-sans@400,500&display=swap');
 @import "tailwindcss";
 
+@custom-variant dark (&:is(.dark *));
+
 @theme {
+  --font-display: 'Satoshi', system-ui, sans-serif;
+  --font-body: 'DM Sans', system-ui, sans-serif;
+  --radius: 0.625rem;
+}
+
+:root {
   --color-brand: #1a3c5e;
   --color-brand-light: #2a5a8a;
   --color-accent: #e8634a;
@@ -11,10 +19,6 @@
   --color-text: #1a1a1a;
   --color-text-secondary: #5a5a5a;
   --color-border: #e5e2dd;
-
-  --font-display: 'Satoshi', system-ui, sans-serif;
-  --font-body: 'DM Sans', system-ui, sans-serif;
-
   --color-background: #f8f6f3;
   --color-foreground: #1a1a1a;
   --color-card: #ffffff;
@@ -30,10 +34,55 @@
   --color-accent-foreground: #ffffff;
   --color-destructive: #c62828;
   --color-destructive-foreground: #ffffff;
+  --color-destructive-bg: #fef2f2;
+  --color-destructive-border: #fecaca;
+  --color-destructive-text: #991b1b;
   --color-input: #e5e2dd;
   --color-ring: #1a3c5e;
+  --color-success: #16a34a;
+  --color-success-bg: #f0fdf4;
+  --color-success-border: #bbf7d0;
+  --color-warning: #d97706;
+  --color-warning-bg: #fffbeb;
+  --color-warning-border: #fde68a;
+}
 
-  --radius: 0.625rem;
+.dark {
+  --color-brand: #6fa8dc;
+  --color-brand-light: #8bc4f0;
+  --color-accent: #f0806a;
+  --color-accent-light: #f5a090;
+  --color-surface: #111318;
+  --color-surface-alt: #1a1d27;
+  --color-text: #e5e5e5;
+  --color-text-secondary: #9ca3af;
+  --color-border: #2a2d3a;
+  --color-background: #111318;
+  --color-foreground: #e5e5e5;
+  --color-card: #1a1d27;
+  --color-card-foreground: #e5e5e5;
+  --color-popover: #1a1d27;
+  --color-popover-foreground: #e5e5e5;
+  --color-primary: #6fa8dc;
+  --color-primary-foreground: #111318;
+  --color-secondary: #1a1d27;
+  --color-secondary-foreground: #e5e5e5;
+  --color-muted: #4b5563;
+  --color-muted-foreground: #9ca3af;
+  --color-accent-foreground: #111318;
+  --color-destructive: #ef4444;
+  --color-destructive-foreground: #111318;
+  --color-destructive-bg: #451a1a;
+  --color-destructive-border: #7f1d1d;
+  --color-destructive-text: #fca5a5;
+  --color-input: #2a2d3a;
+  --color-ring: #6fa8dc;
+  --color-success: #4ade80;
+  --color-success-bg: #052e16;
+  --color-success-border: #166534;
+  --color-warning: #fbbf24;
+  --color-warning-bg: #451a03;
+  --color-warning-border: #78350f;
 }
 
 body {

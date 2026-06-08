@@ -48,7 +48,7 @@ export default function ConfiguracoesPage() {
         <CardContent className="space-y-4">
           <Button
             variant="outline"
-            className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50"
+            className="w-full justify-start text-[--color-destructive] hover:text-[--color-destructive-text] hover:bg-[--color-destructive-bg]"
             onClick={logout}
           >
             <LogOut className="h-4 w-4 mr-2" />

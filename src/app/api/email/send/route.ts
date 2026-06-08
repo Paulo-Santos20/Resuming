@@ -1,27 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { google } from 'googleapis'
+import { verifyAuth, validateBody } from '@/lib/api-helpers'
+import { SendEmailApiSchema } from '@/lib/validations'
 
 export async function POST(request: NextRequest) {
   try {
-    const { subject, body, to, accessToken } = await request.json()
+    const uidOrResponse = await verifyAuth(request)
+    if (uidOrResponse instanceof NextResponse) return uidOrResponse
 
-    if (!subject || !body || !accessToken) {
-      return NextResponse.json({ error: 'Assunto, corpo e token são obrigatórios' }, { status: 400 })
-    }
+    const body = await request.json()
+    const parsed = validateBody(SendEmailApiSchema, body)
+    if (parsed instanceof NextResponse) return parsed
 
     const oauth2Client = new google.auth.OAuth2()
-    oauth2Client.setCredentials({ access_token: accessToken })
+    oauth2Client.setCredentials({ access_token: parsed.accessToken })
 
     const gmail = google.gmail({ version: 'v1', auth: oauth2Client })
 
-    const utf8Subject = `=?UTF-8?B?${Buffer.from(subject).toString('base64')}?=`
+    const utf8Subject = `=?UTF-8?B?${Buffer.from(parsed.subject).toString('base64')}?=`
+    const to = parsed.to || 'me'
     const messageParts = [
       `To: ${to}`,
       'Content-Type: text/html; charset=utf-8',
       'MIME-Version: 1.0',
       `Subject: ${utf8Subject}`,
       '',
-      body,
+      parsed.body,
     ]
     const raw = Buffer.from(messageParts.join('\n'))
       .toString('base64')
