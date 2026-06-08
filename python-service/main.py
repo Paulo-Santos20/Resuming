@@ -51,10 +51,44 @@ _ocr_instance = None
 def get_ocr():
     global _ocr_instance
     if _ocr_instance is None:
-        from PIL import Image
         from paddleocr import PaddleOCR
         _ocr_instance = PaddleOCR(use_angle_cls=True, lang="pt", show_log=False)
     return _ocr_instance
+
+
+def ocr_file(file_bytes: bytes) -> str:
+    import numpy as np
+    from PIL import Image
+
+    is_pdf = file_bytes[:4] == b"%PDF"
+
+    if is_pdf:
+        import fitz
+        doc = fitz.open(stream=file_bytes, filetype="pdf")
+        text_parts = []
+        for page in doc:
+            text = page.get_text().strip()
+            if text:
+                text_parts.append(text)
+            else:
+                pix = page.get_pixmap(dpi=300)
+                img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+                img_np = np.array(img)
+                ocr = get_ocr()
+                result = ocr.ocr(img_np, cls=True)
+                if result and result[0]:
+                    text_parts.append("\n".join(line[1][0] for line in result[0]))
+        doc.close()
+        return "\n\n".join(text_parts)
+    else:
+        img = Image.open(io.BytesIO(file_bytes))
+        validate_image_dimensions(img)
+        img_np = np.array(img.convert("RGB"))
+        ocr = get_ocr()
+        result = ocr.ocr(img_np, cls=True)
+        if result and result[0]:
+            return "\n".join(line[1][0] for line in result[0])
+        return ""
 
 _genai_client = None
 
@@ -127,6 +161,13 @@ class OcrJobRequest(BaseModel):
 
 class GeneratePdfRequest(BaseModel):
     htmlContent: str
+    fontFamily: Optional[str] = "Arial"
+    fontSize: Optional[int] = 12
+    lineHeight: Optional[float] = 1.6
+    sectionSpacing: Optional[int] = 16
+    pageMargins: Optional[int] = 20
+    accentColor: Optional[str] = "#1a3c5e"
+    templateStyle: Optional[str] = "classic"
 
 
 class GenerateEmailRequest(BaseModel):
@@ -228,34 +269,31 @@ async def health():
 @app.post("/parse-resume")
 async def parse_resume(req: ParseResumeRequest):
     try:
-        pdf_bytes = download_file(req.fileUrl)
-        validate_pdf_magic(pdf_bytes)
-        extracted_text = ""
-
-        try:
-            import fitz
-            doc = fitz.open(stream=pdf_bytes, filetype="pdf")
-            text_parts = []
-            for page in doc:
-                text_parts.append(page.get_text())
-            doc.close()
-            extracted_text = "\n".join(text_parts)
-        except ImportError:
-            pass
+        file_bytes = download_file(req.fileUrl)
+        extracted_text = ocr_file(file_bytes)
 
         if not extracted_text.strip():
             raise HTTPException(
                 status_code=422,
-                detail="Não foi possível extrair texto do PDF.",
+                detail="Não foi possível extrair texto do arquivo.",
             )
 
-        prompt = f"""Extraia os dados estruturados deste currículo em texto.
-Retorne um JSON com: nome, email, telefone, endereco, resumoProfissional,
-experiencias (lista com empresa, cargo, periodo, descricao),
-educacao (lista com instituicao, curso, periodo),
-habilidades (lista de strings),
-idiomas (lista com idioma, nivel),
-certificacoes (lista com nome, instituicao, ano).
+        prompt = f"""Você é um especialista em extração de dados de currículos.
+O texto abaixo foi extraído via OCR (reconhecimento óptico de caracteres).
+Corrija possíveis erros de OCR como acentos perdidos, caracteres trocados,
+palavras grudadas ou cortadas em quebras de linha, e letras maiúsculas/minúsculas.
+
+Extraia os dados estruturados e retorne EXATAMENTE este JSON aninhado:
+{{
+  "personal": {{"name": "...", "email": "...", "phone": "...", "location": "...", "summary": "..."}},
+  "experience": [{{"company": "...", "role": "...", "period": "...", "highlights": ["..."]}}],
+  "education": [{{"institution": "...", "degree": "...", "field": "...", "period": "..."}}],
+  "skills": ["..."],
+  "languages": [{{"language": "...", "level": "..."}}],
+  "certifications": [{{"name": "...", "issuer": "...", "year": "..."}}]
+}}
+
+Preencha campos vazios com string vazia "" e listas vazias com [].
 
 Texto do currículo:
 {extracted_text}
@@ -317,26 +355,18 @@ Formato HTML esperado:
 @app.post("/ocr-job")
 async def ocr_job(req: OcrJobRequest):
     try:
-        image_bytes = download_file(req.photoUrl)
-        image_io = io.BytesIO(image_bytes)
+        file_bytes = download_file(req.photoUrl)
+        full_text = ocr_file(file_bytes)
 
-        from PIL import Image
-        Image.MAX_IMAGE_PIXELS = ALLOWED_IMAGE_DIMENSIONS[0] * ALLOWED_IMAGE_DIMENSIONS[1] * 4
-        image = Image.open(image_io)
-        validate_image_dimensions(image)
-        ocr = get_ocr()
-        result = ocr.ocr(image, cls=True)
+        prompt = f"""O texto abaixo foi extraído via OCR (reconhecimento óptico de caracteres).
+Corrija possíveis erros de OCR como acentos perdidos, caracteres trocados,
+palavras grudadas ou cortadas.
 
-        text_lines = []
-        if result and result[0]:
-            for line in result[0]:
-                text_lines.append(line[1][0])
-
-        full_text = "\n".join(text_lines)
-
-        prompt = f"""Extraia e organize as informações desta descrição de vaga em português.
+Extraia e organize as informações desta descrição de vaga.
 Retorne um JSON com: cargo, empresa (se disponível), descricao, requisitos (lista),
 responsabilidades (lista), diferencial (lista), local, tipo (CLT/PJ/Remoto/etc).
+
+Preencha campos vazios com string vazia "" e listas vazias com [].
 
 Texto extraído:
 {full_text}
@@ -361,14 +391,16 @@ async def generate_pdf(req: GeneratePdfRequest):
         from weasyprint import HTML
         html_str = req.htmlContent
         if not html_str.strip().startswith("<"):
+            margin_mm = req.pageMargins
             html_str = f"""<!DOCTYPE html>
 <html><head><meta charset="utf-8">
 <style>
-@page {{ margin: 20mm; }}
-body {{ font-family: Arial, sans-serif; font-size: 12pt; color: #333; line-height: 1.6; }}
-h1, h2, h3 {{ color: #1a3c5e; }}
-h1 {{ font-size: 16pt; }}
-h2 {{ font-size: 14pt; border-bottom: 1px solid #1a3c5e; padding-bottom: 4px; }}
+@page {{ margin: {margin_mm}mm; }}
+body {{ font-family: {req.fontFamily}, sans-serif; font-size: {req.fontSize}pt; color: #333; line-height: {req.lineHeight}; }}
+h1, h2, h3 {{ color: {req.accentColor}; }}
+h1 {{ font-size: {min(req.fontSize + 4, 20)}pt; }}
+h2 {{ font-size: {min(req.fontSize + 2, 16)}pt; border-bottom: 2px solid {req.accentColor}; padding-bottom: 4px; }}
+h3 {{ font-size: {req.fontSize + 1}pt; }}
 </style></head><body>{html_str}</body></html>"""
 
         pdf_bytes = HTML(string=html_str).write_pdf()
