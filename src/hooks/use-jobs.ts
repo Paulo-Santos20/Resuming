@@ -12,6 +12,7 @@ import {
 } from 'firebase/firestore'
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 import { getDbInstance, getStorageInstance } from '@/lib/firebase'
+import { toastSuccess, toastError } from '@/lib/toast'
 import type { JobDescription } from '@/types'
 
 export function useJobs(userId: string | undefined) {
@@ -81,10 +82,12 @@ export function useJobs(userId: string | undefined) {
         })
 
         await fetchJobs()
+        toastSuccess('Vaga criada', `${title} foi adicionada com sucesso`)
         return docRef.id
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : 'Erro ao criar vaga'
         setError(message)
+        toastError('Erro ao criar vaga', message)
         throw err
       } finally {
         setLoading(false)
@@ -102,8 +105,11 @@ export function useJobs(userId: string | undefined) {
           emailSentAt: Date.now(),
         })
         await fetchJobs()
+        toastSuccess('Email enviado', 'Candidatura registrada como enviada')
       } catch (err: unknown) {
-        setError(err instanceof Error ? err.message : 'Erro ao atualizar vaga')
+        const message = err instanceof Error ? err.message : 'Erro ao atualizar vaga'
+        setError(message)
+        toastError('Erro ao enviar', message)
       }
     },
     [userId, fetchJobs]

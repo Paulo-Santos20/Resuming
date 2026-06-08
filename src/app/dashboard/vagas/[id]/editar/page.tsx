@@ -13,6 +13,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ArrowLeft, Save, Eye, FileEdit } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { toastSuccess, toastError } from '@/lib/toast'
 import type { JobDescription } from '@/types'
 
 export default function EditarCurriculoPage() {
@@ -54,9 +55,11 @@ export default function EditarCurriculoPage() {
       await updateDoc(doc(getDbInstance(), 'users', user.uid, 'jobs', id), {
         status: 'edited',
       })
+      toastSuccess('Alterações salvas')
       router.push(`/dashboard/vagas/${id}`)
     } catch (err) {
       console.error('Save error:', err)
+      toastError('Erro ao salvar')
     } finally {
       setSaving(false)
     }

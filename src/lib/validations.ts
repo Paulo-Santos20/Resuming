@@ -11,15 +11,40 @@ export const UpdateResumeSchema = z.object({
   templateType: z.enum(['ats', 'original']),
 })
 
-export const SendEmailSchema = z.object({
-  jobId: z.string().min(1),
-  resumeVersionId: z.string().min(1),
-  subject: z.string().min(1).max(200).trim(),
-  body: z.string().min(1).max(50000),
-  recipientEmail: z.string().email(),
+export const SendEmailApiSchema = z.object({
+  subject: z.string().min(1, 'Assunto é obrigatório').max(200).trim(),
+  body: z.string().min(1, 'Corpo é obrigatório').max(50000),
+  to: z.string().email('Email inválido').optional(),
+  accessToken: z.string().min(1, 'Token de acesso é obrigatório'),
 })
 
 export const UploadResumeSchema = z.object({
   fileSize: z.number().max(10 * 1024 * 1024, 'Arquivo deve ter no máximo 10MB'),
   fileType: z.string().refine((v) => v === 'application/pdf', 'Apenas arquivos PDF são aceitos'),
+})
+
+export const ParseResumeApiSchema = z.object({
+  fileUrl: z.string().url('URL inválida'),
+})
+
+export const EditResumeApiSchema = z.object({
+  resumeData: z.record(z.string(), z.unknown()),
+  jobDescription: z.string().min(1).max(50000),
+  templateType: z.enum(['ats', 'original']).default('ats'),
+  instructions: z.string().optional(),
+})
+
+export const OcrJobApiSchema = z.object({
+  photoUrl: z.string().url('URL inválida'),
+})
+
+export const GeneratePdfApiSchema = z.object({
+  htmlContent: z.string().min(1, 'Conteúdo HTML é obrigatório'),
+})
+
+export const GenerateEmailApiSchema = z.object({
+  resumeHtml: z.string().min(1),
+  jobTitle: z.string().min(1),
+  companyName: z.string().default(''),
+  hiringManager: z.string().optional(),
 })

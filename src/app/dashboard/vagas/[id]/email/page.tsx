@@ -5,22 +5,35 @@ import { useParams } from 'next/navigation'
 import { doc, getDoc } from 'firebase/firestore'
 import { getDbInstance } from '@/lib/firebase'
 import { useAuth } from '@/hooks/use-auth'
+import { useJobs } from '@/hooks/use-jobs'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { EmailComposer } from '@/components/email/email-composer'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, RefreshCw } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import type { JobDescription, ResumeVersion } from '@/types'
+import { sanitizeHtml } from '@/lib/sanitize'
+import { toastError } from '@/lib/toast'
+import type { JobDescription } from '@/types'
 
 export default function EmailVagaPage() {
   const { id } = useParams<{ id: string }>()
-  const { user, profile, googleAccessToken } = useAuth()
+  const { user, profile, googleAccessToken, refreshGoogleToken } = useAuth()
+  const { markAsSent } = useJobs(user?.uid)
   const router = useRouter()
   const [job, setJob] = useState<JobDescription | null>(null)
   const [sending, setSending] = useState(false)
   const [generating, setGenerating] = useState(false)
   const [loading, setLoading] = useState(true)
+
+  const chosenType = typeof window !== 'undefined'
+    ? (sessionStorage.getItem(`chosen-${id}`) || 'ats')
+    : 'ats'
+
+  const resumeHtml = typeof window !== 'undefined'
+    ? (sessionStorage.getItem(`edited-${id}`) || '')
+    : ''
 
   useEffect(() => {
     if (!user?.uid || !id) return
@@ -42,6 +55,10 @@ export default function EmailVagaPage() {
     setGenerating(true)
     try {
       const idToken = await user?.getIdToken()
+      const html = typeof window !== 'undefined'
+        ? (sessionStorage.getItem(`edited-${id}`) || '<p>Currículo em anexo</p>')
+        : '<p>Currículo em anexo</p>'
+
       const response = await fetch('/api/python/generate-email', {
         method: 'POST',
         headers: {
@@ -49,7 +66,7 @@ export default function EmailVagaPage() {
           Authorization: `Bearer ${idToken}`,
         },
         body: JSON.stringify({
-          resumeHtml: '<p>Currículo em anexo</p>',
+          resumeHtml: html,
           jobTitle: job?.title || '',
           companyName: '',
         }),
@@ -59,18 +76,20 @@ export default function EmailVagaPage() {
       return { subject: result.subject || `Candidatura — ${job?.title}`, body: result.body || '' }
     } catch (err) {
       console.error('Generate email error:', err)
+      toastError('Erro ao gerar email', 'Tente novamente ou escreva manualmente')
       return { subject: `Candidatura — ${job?.title}`, body: '' }
     } finally {
       setGenerating(false)
     }
   }
 
-  const handleSend = async (subject: string, body: string) => {
+  const handleSend = async (subject: string, body: string, to: string) => {
     if (!user?.uid || !job) return
     setSending(true)
     try {
-      if (!googleAccessToken) {
-        throw new Error('Token de acesso do Google não disponível — faça login novamente')
+      const token = googleAccessToken
+      if (!token) {
+        throw new Error('Token de acesso do Google não disponível')
       }
       const response = await fetch('/api/email/send', {
         method: 'POST',
@@ -78,21 +97,26 @@ export default function EmailVagaPage() {
         body: JSON.stringify({
           subject,
           body,
-          to: profile?.email,
-          accessToken: googleAccessToken,
+          to: to || profile?.email,
+          accessToken: token,
         }),
       })
-      if (!response.ok) throw new Error('Erro ao enviar email')
+      if (!response.ok) {
+        const text = await response.text()
+        throw new Error(text || 'Erro ao enviar email')
+      }
+      await markAsSent(job.id)
       router.push(`/dashboard/vagas/${id}`)
     } catch (err) {
       console.error('Send email error:', err)
+      throw err
     } finally {
       setSending(false)
     }
   }
 
   if (loading) {
-    return <div className="flex items-center justify-center h-64 text-muted-foreground">Carregando…</div>
+    return <div className="flex items-center justify-center h-64 text-[--color-muted-foreground]">Carregando…</div>
   }
 
   if (!job) {
@@ -107,7 +131,7 @@ export default function EmailVagaPage() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto space-y-8">
+    <div className="max-w-4xl mx-auto space-y-8">
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" asChild>
           <Link href={`/dashboard/vagas/${id}`}>
@@ -116,24 +140,77 @@ export default function EmailVagaPage() {
         </Button>
         <div>
           <h1 className="font-display text-2xl font-bold">Enviar Email</h1>
-          <p className="text-muted-foreground mt-1">
+          <p className="text-[--color-muted-foreground] mt-1">
             Candidatura para {job.title}
           </p>
         </div>
       </div>
+
+      {/* Google token warning */}
+      {!googleAccessToken && (
+        <div className="flex items-center gap-3 rounded-lg border border-[--color-warning-border] bg-[--color-warning-bg] px-4 py-3 text-sm">
+          <span className="text-[--color-warning]">
+            Conexão com o Gmail expirou. Reconecte sua conta para enviar emails.
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={refreshGoogleToken}
+            className="ml-auto shrink-0"
+          >
+            <RefreshCw className="h-3 w-3 mr-1" />
+            Reconectar Gmail
+          </Button>
+        </div>
+      )}
+
+      {/* Resume preview */}
+      {resumeHtml && (
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div className="flex items-center gap-2">
+              <CardTitle>Currículo Selecionado</CardTitle>
+              <Badge variant={chosenType === 'original' ? 'secondary' : 'default'}>
+                {chosenType === 'ats' ? 'ATS' : 'Original'}
+              </Badge>
+            </div>
+            <Button variant="outline" size="sm" asChild>
+              <Link href={`/dashboard/vagas/${id}`}>
+                Trocar versão
+              </Link>
+            </Button>
+          </CardHeader>
+          <CardContent>
+            <div
+              className="prose prose-sm max-w-none max-h-80 overflow-y-auto border rounded-lg p-6 bg-[--color-card]"
+              dangerouslySetInnerHTML={{ __html: sanitizeHtml(resumeHtml) }}
+            />
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>
           <CardTitle>Compor Email</CardTitle>
         </CardHeader>
         <CardContent>
-          <EmailComposer
-            job={job}
-            onSend={handleSend}
-            onGenerateEmail={handleGenerateEmail}
-            loading={sending}
-            generating={generating}
-          />
+          {!googleAccessToken ? (
+            <div className="text-center py-8 text-[--color-muted-foreground]">
+              <p className="mb-4">Conecte sua conta Gmail para enviar emails.</p>
+              <Button onClick={refreshGoogleToken}>
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Conectar Gmail
+              </Button>
+            </div>
+          ) : (
+            <EmailComposer
+              job={job}
+              onSend={handleSend}
+              onGenerateEmail={handleGenerateEmail}
+              loading={sending}
+              generating={generating}
+            />
+          )}
         </CardContent>
       </Card>
     </div>

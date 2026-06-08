@@ -19,10 +19,10 @@ export function GoogleLoginButton() {
         onClick={login}
         disabled={loading}
         size="lg"
-        className="flex items-center gap-3 bg-white text-[#1a1a1a] border border-[--color-border] hover:bg-[--color-surface-alt] shadow-sm min-w-[280px]"
+        className="flex items-center gap-3 bg-[--color-card] text-[--color-foreground] border border-[--color-border] hover:bg-[--color-secondary] shadow-sm min-w-[280px]"
       >
         {loading ? (
-          <div className="h-5 w-5 animate-spin rounded-full border-2 border-[--color-brand] border-t-transparent" />
+          <div className="h-5 w-5 animate-spin rounded-full border-2 border-[--color-primary] border-t-transparent" />
         ) : (
           <svg className="h-5 w-5" viewBox="0 0 24 24">
             <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4" />
@@ -36,7 +36,7 @@ export function GoogleLoginButton() {
         </span>
       </Button>
       {error && (
-        <p className="text-sm text-red-500 max-w-xs text-center">{error}</p>
+        <p className="text-sm text-[--color-destructive] max-w-xs text-center">{error}</p>
       )}
     </div>
   )

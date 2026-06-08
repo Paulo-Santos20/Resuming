@@ -1,26 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getAuth } from 'firebase-admin/auth'
-import { initAdmin } from '@/lib/firebase-admin'
-
-const PYTHON_SERVICE_URL = process.env.CLOUD_RUN_URL || 'http://localhost:8000'
+import { verifyAuth, validateBody, PYTHON_SERVICE_URL } from '@/lib/api-helpers'
+import { OcrJobApiSchema } from '@/lib/validations'
 
 export async function POST(request: NextRequest) {
   try {
-    const authHeader = request.headers.get('authorization')
-    if (!authHeader?.startsWith('Bearer ')) {
-      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
-    }
-
-    const token = authHeader.split('Bearer ')[1]
-    initAdmin()
-    await getAuth().verifyIdToken(token)
+    const uidOrResponse = await verifyAuth(request)
+    if (uidOrResponse instanceof NextResponse) return uidOrResponse
 
     const body = await request.json()
+    const parsed = validateBody(OcrJobApiSchema, body)
+    if (parsed instanceof NextResponse) return parsed
 
     const response = await fetch(`${PYTHON_SERVICE_URL}/ocr-job`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
+      body: JSON.stringify(parsed),
     })
 
     if (!response.ok) {

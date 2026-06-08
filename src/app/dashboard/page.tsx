@@ -26,8 +26,8 @@ export default function DashboardPage() {
   const stats = [
     { label: 'Currículos', value: resumes.length, icon: FileText, color: 'text-[--color-brand]' },
     { label: 'Vagas', value: jobs.length, icon: Briefcase, color: 'text-[--color-accent]' },
-    { label: 'Enviadas', value: sentCount, icon: Send, color: 'text-emerald-600' },
-    { label: 'Pendentes', value: pendingCount, icon: Clock, color: 'text-amber-600' },
+    { label: 'Enviadas', value: sentCount, icon: Send, color: 'text-[--color-success]' },
+    { label: 'Pendentes', value: pendingCount, icon: Clock, color: 'text-[--color-warning]' },
   ]
 
   return (

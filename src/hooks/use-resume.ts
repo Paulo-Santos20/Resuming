@@ -12,6 +12,7 @@ import {
 } from 'firebase/firestore'
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 import { getDbInstance, getStorageInstance } from '@/lib/firebase'
+import { toastSuccess, toastError } from '@/lib/toast'
 import type { Resume, ResumeVersion, ResumeData } from '@/types'
 
 export function useResume(userId: string | undefined) {
@@ -81,10 +82,12 @@ export function useResume(userId: string | undefined) {
         })
 
         await fetchResumes()
+        toastSuccess('Currículo enviado', `${file.name} foi processado com sucesso`)
         return docRef.id
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : 'Erro ao enviar currículo'
         setError(message)
+        toastError('Erro ao enviar currículo', message)
         throw err
       } finally {
         setLoading(false)
@@ -118,10 +121,12 @@ export function useResume(userId: string | undefined) {
         })
         if (!response.ok) throw new Error('Erro ao editar currículo')
         const { html } = await response.json()
+        toastSuccess('Currículo editado', 'Versão otimizada gerada para a vaga')
         return html as string
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : 'Erro ao editar currículo'
         setError(message)
+        toastError('Erro ao editar currículo', message)
         throw err
       } finally {
         setLoading(false)
