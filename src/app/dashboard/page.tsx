@@ -27,10 +27,10 @@ export default function DashboardPage() {
   const pendingCount = jobs.filter((j) => j.status === 'pending').length
 
   const stats = [
-    { label: 'Currículos', value: resumes.length, icon: FileText, color: 'text-[--color-brand]' },
-    { label: 'Vagas', value: jobs.length, icon: Briefcase, color: 'text-[--color-accent]' },
-    { label: 'Enviadas', value: sentCount, icon: Send, color: 'text-[--color-success]' },
-    { label: 'Pendentes', value: pendingCount, icon: Clock, color: 'text-[--color-warning]' },
+    { label: 'Currículos', value: resumes.length, icon: FileText, color: 'text-brand' },
+    { label: 'Vagas', value: jobs.length, icon: Briefcase, color: 'text-accent' },
+    { label: 'Enviadas', value: sentCount, icon: Send, color: 'text-success' },
+    { label: 'Pendentes', value: pendingCount, icon: Clock, color: 'text-warning' },
   ]
 
   return (

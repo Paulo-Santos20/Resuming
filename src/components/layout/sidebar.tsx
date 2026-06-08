@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useCallback, useRef } from 'react'
+import { useEffect, useCallback, useRef, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
@@ -14,6 +14,7 @@ import {
   Moon,
   Sun,
   ChevronLeft,
+  ChevronRight,
   X,
 } from 'lucide-react'
 import { useUIStore } from '@/stores/ui-store'
@@ -29,25 +30,24 @@ interface SidebarProps {
   onLogout: () => void
   userName: string
   userEmail: string
+  photoURL?: string | null
   mobile?: boolean
   onClose?: () => void
 }
 
-export function Sidebar({ onLogout, userName, userEmail, mobile, onClose }: SidebarProps) {
+export function Sidebar({ onLogout, userName, userEmail, photoURL, mobile, onClose }: SidebarProps) {
   const pathname = usePathname()
   const { sidebarOpen, toggleSidebar, toggleDarkMode, darkMode } = useUIStore()
   const collapsed = !sidebarOpen && !mobile
   const initial = userName?.charAt(0)?.toUpperCase() || '?'
   const sidebarRef = useRef<HTMLElement>(null)
+  const [hoveredItem, setHoveredItem] = useState<string | null>(null)
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if (e.key === 'Escape' && mobile && onClose) {
       onClose()
     }
-    if (e.key === 'Escape' && !mobile && collapsed && sidebarOpen) {
-      toggleSidebar()
-    }
-  }, [mobile, onClose, collapsed, sidebarOpen, toggleSidebar])
+  }, [mobile, onClose])
 
   useEffect(() => {
     if (!mobile) return
@@ -58,6 +58,182 @@ export function Sidebar({ onLogout, userName, userEmail, mobile, onClose }: Side
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [mobile, handleKeyDown])
 
+  const isActive = (href: string) => {
+    if (href === '/dashboard') return pathname === '/dashboard'
+    return pathname === href || pathname.startsWith(href + '/')
+  }
+
+  const UserAvatar = ({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) => {
+    const sizeMap = { sm: 28, md: 36, lg: 40 }
+    const px = sizeMap[size]
+    const [imgError, setImgError] = useState(false)
+
+    useEffect(() => {
+      setImgError(false)
+    }, [photoURL])
+
+    if (photoURL && !imgError) {
+      return (
+        <div
+          className="shrink-0 rounded-full overflow-hidden"
+          style={{ width: px, height: px, minWidth: px, minHeight: px }}
+        >
+          <img
+            src={photoURL}
+            alt={userName}
+            className="h-full w-full object-cover"
+            onError={() => setImgError(true)}
+          />
+        </div>
+      )
+    }
+
+    return (
+      <div
+        className="flex shrink-0 items-center justify-center rounded-full bg-accent text-[--color-accent-foreground] font-bold shadow-sm"
+        style={{ width: px, height: px, minWidth: px, minHeight: px }}
+      >
+        <span className={cn(size === 'sm' ? 'text-xs' : 'text-sm')}>{initial}</span>
+      </div>
+    )
+  }
+
+  const sidebarContent = (variant: 'desktop' | 'mobile') => {
+    const isMobile = variant === 'mobile'
+    return (
+      <div className="flex h-full flex-col">
+        {/* Header */}
+        <div className={cn(
+          'flex items-center shrink-0 border-b border-border h-16',
+          collapsed ? 'justify-center px-0.5' : 'justify-between px-3'
+        )}>
+          {collapsed ? (
+            <div className="flex items-center gap-px">
+              <button
+                onClick={toggleSidebar}
+                className="flex items-center justify-center rounded-xl bg-primary text-primary-foreground font-display font-bold h-7 w-7 text-xs cursor-pointer hover:opacity-90 transition-opacity"
+                title="Expandir menu"
+              >
+                R
+              </button>
+              <button
+                onClick={toggleSidebar}
+                className="flex items-center justify-center h-5 w-5 text-muted-foreground hover:text-foreground transition-colors rounded"
+                title="Expandir menu"
+              >
+                <ChevronRight className="h-3 w-3" />
+              </button>
+            </div>
+          ) : (
+            <>
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="flex shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground font-display font-bold h-9 w-9 text-base">
+                  R
+                </div>
+                <div className="min-w-0">
+                  <h2 className="font-display font-semibold text-sm truncate text-foreground">Resume React</h2>
+                  <p className="text-xs text-muted-foreground truncate leading-tight">Currículos inteligentes</p>
+                </div>
+              </div>
+              <Button variant="ghost" size="icon" onClick={toggleSidebar} title="Recolher menu" className="shrink-0 -mr-1">
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+            </>
+          )}
+        </div>
+
+        {/* Nav */}
+        <nav className={cn(
+          'flex-1 space-y-0.5 px-2 py-4',
+          collapsed ? 'overflow-hidden' : 'overflow-y-auto'
+        )} aria-label="Navegação principal">
+          {navItems.map((item) => {
+            const active = isActive(item.href)
+            const hovered = hoveredItem === item.href
+            return (
+              <div key={item.href} className="relative group">
+                <Link
+                  href={item.href}
+                  onClick={() => { isMobile && onClose?.() }}
+                  onMouseEnter={() => setHoveredItem(item.href)}
+                  onMouseLeave={() => setHoveredItem(null)}
+                  className={cn(
+                    'relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200',
+                    collapsed && 'justify-center px-2',
+                    active
+                      ? 'bg-accent/10 text-accent font-semibold'
+                      : 'text-muted-foreground hover:bg-secondary/60 hover:text-foreground'
+                  )}
+                  title={(collapsed || isMobile) ? item.label : undefined}
+                >
+                  {active && (
+                    <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-1 rounded-r-full bg-accent" />
+                  )}
+                  <div className={cn(
+                    'flex items-center justify-center shrink-0 transition-transform duration-200',
+                    hovered && !active && 'scale-110',
+                    active && 'scale-105'
+                  )}>
+                    <item.icon className={cn(
+                      'h-[18px] w-[18px] transition-colors duration-200',
+                      active ? 'text-accent' : 'text-muted-foreground group-hover:text-foreground'
+                    )} />
+                  </div>
+                  {!collapsed && (
+                    <span className="transition-colors duration-200 truncate">{item.label}</span>
+                  )}
+                </Link>
+
+                {collapsed && (
+                  <div className={cn(
+                    'absolute left-full ml-2 top-1/2 -translate-y-1/2 z-50',
+                    'px-2.5 py-1.5 rounded-md text-xs font-medium whitespace-nowrap',
+                    'bg-foreground text-background shadow-lg',
+                    'opacity-0 invisible group-hover:opacity-100 group-hover:visible',
+                    'transition-all duration-150'
+                  )}>
+                    {item.label}
+                    <div className="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-foreground" />
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </nav>
+
+        {/* Bottom */}
+        <div className="border-t border-border">
+          {/* User */}
+          <div className={cn(
+            'flex items-center gap-3 rounded-lg mx-3 mt-3 p-2.5',
+            collapsed ? 'justify-center' : 'bg-secondary'
+          )}>
+            <UserAvatar size={collapsed ? 'sm' : 'lg'} />
+            {!collapsed && (
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium truncate text-foreground">{userName || 'Usuário'}</p>
+                <p className="text-xs text-muted-foreground truncate">{userEmail}</p>
+              </div>
+            )}
+          </div>
+
+          {/* Actions */}
+          <div className={cn(
+            'p-3',
+            collapsed && 'flex flex-col items-center gap-1'
+          )}>
+            <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground h-8 w-8" onClick={toggleDarkMode} title={darkMode ? 'Modo claro' : 'Modo escuro'}>
+              {darkMode ? <Sun className="h-4 w-4 shrink-0" /> : <Moon className="h-4 w-4 shrink-0" />}
+            </Button>
+            <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive h-8 w-8" onClick={onLogout} title="Sair">
+              <LogOut className="h-4 w-4 shrink-0" />
+            </Button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <>
       {/* Desktop */}
@@ -67,111 +243,13 @@ export function Sidebar({ onLogout, userName, userEmail, mobile, onClose }: Side
           role="navigation"
           aria-label="Menu lateral"
           className={cn(
-            'hidden lg:flex h-full flex-col border-r border-[--color-border] bg-[--color-card] relative',
+            'hidden lg:flex h-full flex-col',
+            'bg-card border-r border-border',
             'transition-all duration-300 ease-in-out',
             sidebarOpen ? 'w-64' : 'w-16'
           )}
         >
-          {/* Header */}
-          <div className={cn(
-            'flex items-center border-b border-[--color-border] shrink-0',
-            sidebarOpen ? 'justify-between px-4' : 'justify-center px-2'
-          )}>
-            {sidebarOpen ? (
-              <>
-                <div className="flex items-center gap-3 py-4">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[--color-primary] text-[--color-primary-foreground] font-display font-bold text-lg">
-                    R
-                  </div>
-                  <div className="min-w-0">
-                    <h2 className="font-display font-semibold text-sm truncate">Resume React</h2>
-                    <p className="text-xs text-[--color-muted-foreground] truncate">Currículos inteligentes</p>
-                  </div>
-                </div>
-                <Button variant="ghost" size="icon" onClick={toggleSidebar} title="Recolher menu">
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-              </>
-            ) : (
-              <Button variant="ghost" size="icon" onClick={toggleSidebar} title="Expandir menu" className="my-4">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[--color-primary] text-[--color-primary-foreground] font-display font-bold text-lg">
-                  R
-                </div>
-              </Button>
-            )}
-          </div>
-
-          {/* Nav */}
-          <nav className="flex-1 space-y-1 px-3 py-4" aria-label="Navegação principal">
-            {navItems.map((item) => {
-              const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={cn(
-                    'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
-                    isActive
-                      ? 'bg-[--color-primary] text-[--color-primary-foreground]'
-                      : 'text-[--color-muted-foreground] hover:bg-[--color-secondary] hover:text-[--color-primary]',
-                    collapsed && 'justify-center px-0'
-                  )}
-                  title={collapsed ? item.label : undefined}
-                >
-                  <item.icon className="h-4 w-4 shrink-0" />
-                  <span className={cn('transition-opacity duration-200', collapsed && 'hidden')}>
-                    {item.label}
-                  </span>
-                </Link>
-              )
-            })}
-          </nav>
-
-          {/* Bottom */}
-          <div className="border-t border-[--color-border] p-3 space-y-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              className={cn(
-                'w-full text-[--color-muted-foreground]',
-                collapsed ? 'justify-center px-0' : 'justify-start'
-              )}
-              onClick={toggleDarkMode}
-              title={darkMode ? 'Modo claro' : 'Modo escuro'}
-            >
-              {darkMode ? <Sun className="h-4 w-4 shrink-0" /> : <Moon className="h-4 w-4 shrink-0" />}
-              <span className={cn('ml-2 transition-opacity duration-200', collapsed && 'hidden')}>
-                {darkMode ? 'Modo Claro' : 'Modo Escuro'}
-              </span>
-            </Button>
-
-            <div className={cn(
-              'flex items-center gap-3 px-1',
-              collapsed && 'justify-center'
-            )}>
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[--color-accent] text-[--color-accent-foreground] text-xs font-bold">
-                {initial}
-              </div>
-              <div className={cn('flex-1 min-w-0 transition-opacity duration-200', collapsed && 'hidden')}>
-                <p className="text-sm font-medium truncate text-[--color-foreground]">{userName || 'Usuário'}</p>
-                <p className="text-xs text-[--color-muted-foreground] truncate">{userEmail}</p>
-              </div>
-            </div>
-
-            <Button
-              variant="ghost"
-              size="sm"
-              className={cn(
-                'w-full text-[--color-muted-foreground]',
-                collapsed ? 'justify-center px-0' : 'justify-start'
-              )}
-              onClick={onLogout}
-              title="Sair"
-            >
-              <LogOut className="h-4 w-4 shrink-0" />
-              <span className={cn('ml-2 transition-opacity duration-200', collapsed && 'hidden')}>Sair</span>
-            </Button>
-          </div>
+          {sidebarContent('desktop')}
         </aside>
       )}
 
@@ -179,7 +257,7 @@ export function Sidebar({ onLogout, userName, userEmail, mobile, onClose }: Side
       {mobile && (
         <>
           <div
-            className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
+            className="fixed inset-0 z-40"
             onClick={onClose}
             role="presentation"
           />
@@ -189,80 +267,9 @@ export function Sidebar({ onLogout, userName, userEmail, mobile, onClose }: Side
             aria-modal="true"
             aria-label="Menu de navegação"
             tabIndex={-1}
-            className="fixed inset-y-0 left-0 z-50 w-64 bg-[--color-card] shadow-xl outline-none"
+            className="fixed inset-y-0 left-0 z-50 w-64 bg-card shadow-xl outline-none"
           >
-            <div className="flex h-full flex-col">
-              {/* Header */}
-              <div className="flex items-center justify-between border-b border-[--color-border] px-4 py-4">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[--color-primary] text-[--color-primary-foreground] font-display font-bold text-lg">
-                    R
-                  </div>
-                  <div>
-                    <h2 className="font-display font-semibold text-sm">Resume React</h2>
-                    <p className="text-xs text-[--color-muted-foreground]">Currículos inteligentes</p>
-                  </div>
-                </div>
-                <Button variant="ghost" size="icon" onClick={onClose} aria-label="Fechar menu">
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-
-              {/* Nav */}
-              <nav className="flex-1 space-y-1 px-3 py-4" role="menubar" aria-label="Navegação principal">
-                {navItems.map((item) => {
-                  const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      role="menuitem"
-                      onClick={onClose}
-                      className={cn(
-                        'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
-                        isActive
-                          ? 'bg-[--color-primary] text-[--color-primary-foreground]'
-                          : 'text-[--color-muted-foreground] hover:bg-[--color-secondary] hover:text-[--color-primary]'
-                      )}
-                    >
-                      <item.icon className="h-4 w-4 shrink-0" />
-                      {item.label}
-                    </Link>
-                  )
-                })}
-              </nav>
-
-              {/* Bottom */}
-              <div className="border-t border-[--color-border] p-3 space-y-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="w-full justify-start text-[--color-muted-foreground]"
-                  onClick={toggleDarkMode}
-                >
-                  {darkMode ? <Sun className="h-4 w-4 mr-2" /> : <Moon className="h-4 w-4 mr-2" />}
-                  {darkMode ? 'Modo Claro' : 'Modo Escuro'}
-                </Button>
-                <div className="flex items-center gap-3 px-1">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[--color-accent] text-[--color-accent-foreground] text-xs font-bold">
-                    {initial}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate text-[--color-foreground]">{userName || 'Usuário'}</p>
-                    <p className="text-xs text-[--color-muted-foreground] truncate">{userEmail}</p>
-                  </div>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="w-full justify-start text-[--color-muted-foreground]"
-                  onClick={onLogout}
-                >
-                  <LogOut className="h-4 w-4 mr-2" />
-                  Sair
-                </Button>
-              </div>
-            </div>
+            {sidebarContent('mobile')}
           </aside>
         </>
       )}
