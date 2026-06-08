@@ -60,7 +60,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       <main className="flex-1 overflow-y-auto">
         {/* Mobile top bar */}
         <div className="sticky top-0 z-30 flex items-center gap-3 border-b border-[--color-border] bg-[--color-background]/80 backdrop-blur-sm px-4 py-3 lg:hidden">
-          <Button variant="ghost" size="icon" onClick={toggleSidebar}>
+          <Button variant="ghost" size="icon" onClick={toggleSidebar} aria-label="Abrir menu">
             <Menu className="h-5 w-5" />
           </Button>
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[--color-primary] text-[--color-primary-foreground] font-display font-bold text-sm">

@@ -75,8 +75,8 @@ export default function VagaDetalhePage() {
     setChosenVersion(null)
     try {
       const [atsHtml, originalHtml] = await Promise.all([
-        editResume(selectedResumeId, job.id, job.description, 'ats'),
-        editResume(selectedResumeId, job.id, job.description, 'original'),
+        editResume(selectedResumeId, job.id, job.description, 'ats', job.title),
+        editResume(selectedResumeId, job.id, job.description, 'original', job.title),
       ])
       setVersionAts(atsHtml)
       setVersionOriginal(originalHtml)

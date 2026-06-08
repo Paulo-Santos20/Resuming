@@ -11,7 +11,7 @@ import {
   updateDoc,
 } from 'firebase/firestore'
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
-import { getDbInstance, getStorageInstance } from '@/lib/firebase'
+import { getDbInstance, getStorageInstance, getAuthInstance } from '@/lib/firebase'
 import { toastSuccess, toastError } from '@/lib/toast'
 import type { JobDescription } from '@/types'
 
@@ -57,9 +57,10 @@ export function useJobs(userId: string | undefined) {
           photoPath = await getDownloadURL(storageRef)
 
           try {
+            const ocrIdToken = await getAuthInstance().currentUser?.getIdToken()
             const ocrResponse = await fetch('/api/python/ocr-job', {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${ocrIdToken}` },
               body: JSON.stringify({ photoUrl: photoPath }),
             })
             if (ocrResponse.ok) {
@@ -68,6 +69,7 @@ export function useJobs(userId: string | undefined) {
             }
           } catch (ocrErr) {
             console.error('OCR error:', ocrErr)
+            toastError('Foto não processada', 'Não foi possível extrair texto da foto. A vaga foi criada sem descrição.')
           }
         }
 

@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import {
   onAuthStateChanged,
+  onIdTokenChanged,
   signInWithPopup,
   signOut,
   User,
@@ -45,7 +46,7 @@ export function useAuth() {
     mountedRef.current = true
     const authInstance = getAuthInstance()
     const dbInstance = getDbInstance()
-    const unsubscribe = onAuthStateChanged(authInstance, async (firebaseUser) => {
+    const unsubAuth = onAuthStateChanged(authInstance, async (firebaseUser) => {
       if (!mountedRef.current) return
       setUser(firebaseUser)
       if (firebaseUser) {
@@ -68,9 +69,19 @@ export function useAuth() {
       }
       if (mountedRef.current) setLoading(false)
     })
+
+    const unsubToken = onIdTokenChanged(authInstance, async (firebaseUser) => {
+      if (!mountedRef.current) return
+      if (firebaseUser) {
+        setUser(firebaseUser)
+        if (!mountedRef.current) return
+      }
+    })
+
     return () => {
       mountedRef.current = false
-      unsubscribe()
+      unsubAuth()
+      unsubToken()
     }
   }, [])
 

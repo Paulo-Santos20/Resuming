@@ -9,9 +9,10 @@ import {
   addDoc,
   doc,
   updateDoc,
+  limit,
 } from 'firebase/firestore'
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
-import { getDbInstance, getStorageInstance } from '@/lib/firebase'
+import { getDbInstance, getStorageInstance, getAuthInstance } from '@/lib/firebase'
 import { toastSuccess, toastError } from '@/lib/toast'
 import type { Resume, ResumeVersion, ResumeData } from '@/types'
 
@@ -66,9 +67,12 @@ export function useResume(userId: string | undefined) {
           updatedAt: Date.now(),
         })
 
+        const idToken = await getAuthInstance().currentUser?.getIdToken()
+        if (!idToken) throw new Error('Token de autenticação não disponível')
+
         const response = await fetch('/api/python/parse-resume', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` },
           body: JSON.stringify({ fileUrl: downloadURL, uid: userId }),
         })
 
@@ -96,12 +100,31 @@ export function useResume(userId: string | undefined) {
     [userId, fetchResumes]
   )
 
+  const fetchVersions = useCallback(
+    async (resumeId: string) => {
+      if (!userId) return
+      const dbInstance = getDbInstance()
+      try {
+        const q = query(
+          collection(dbInstance, 'users', userId, 'resumes', resumeId, 'versions'),
+          orderBy('createdAt', 'desc')
+        )
+        const snap = await getDocs(q)
+        setVersions(snap.docs.map((d) => ({ id: d.id, ...d.data() } as ResumeVersion)))
+      } catch {
+        console.error('Erro ao carregar versões')
+      }
+    },
+    [userId]
+  )
+
   const editResume = useCallback(
     async (
       resumeId: string,
       jobId: string,
       jobDescription: string,
-      templateType: 'ats' | 'original' = 'ats'
+      templateType: 'ats' | 'original' = 'ats',
+      jobTitle: string = ''
     ) => {
       if (!userId) throw new Error('Usuário não autenticado')
       const resume = resumesRef.current.find((r) => r.id === resumeId)
@@ -110,9 +133,12 @@ export function useResume(userId: string | undefined) {
       setError(null)
       setLoading(true)
       try {
+        const idToken = await getAuthInstance().currentUser?.getIdToken()
+        if (!idToken) throw new Error('Token de autenticação não disponível')
+
         const response = await fetch('/api/python/edit-resume', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` },
           body: JSON.stringify({
             resumeData: resume.parsedData,
             jobDescription,
@@ -121,6 +147,22 @@ export function useResume(userId: string | undefined) {
         })
         if (!response.ok) throw new Error('Erro ao editar currículo')
         const { html } = await response.json()
+
+        const versionsRef = collection(getDbInstance(), 'users', userId, 'resumes', resumeId, 'versions')
+        const existingSnap = await getDocs(query(versionsRef, orderBy('versionNumber', 'desc'), limit(1)))
+        const nextVersion = existingSnap.docs.length > 0 ? (existingSnap.docs[0].data().versionNumber || 0) + 1 : 1
+
+        await addDoc(versionsRef, {
+          resumeId,
+          jobId,
+          jobTitle,
+          content: html,
+          templateType,
+          versionNumber: nextVersion,
+          createdAt: Date.now(),
+        })
+
+        await fetchVersions(resumeId)
         toastSuccess('Currículo editado', 'Versão otimizada gerada para a vaga')
         return html as string
       } catch (err: unknown) {
@@ -132,8 +174,8 @@ export function useResume(userId: string | undefined) {
         setLoading(false)
       }
     },
-    [userId]
+    [userId, fetchVersions]
   )
 
-  return { resumes, versions, loading, error, fetchResumes, uploadResume, editResume }
+  return { resumes, versions, loading, error, fetchResumes, fetchVersions, uploadResume, editResume }
 }
