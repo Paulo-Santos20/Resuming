@@ -8,45 +8,45 @@ export interface UserProfile {
 
 export interface ResumeData {
   personal: PersonalInfo
-  experience: Experience[]
-  education: Education[]
-  skills: string[]
-  languages: Language[]
-  certifications: Certification[]
+  experiencia: Experience[]
+  educacao: Education[]
+  habilidades: string[]
+  idiomas: Language[]
+  certificacoes: Certification[]
 }
 
 export interface PersonalInfo {
-  name: string
+  nome: string
   email: string
-  phone: string
+  telefone: string
   linkedin: string
-  location: string
-  summary: string
+  endereco: string
+  resumo: string
 }
 
 export interface Experience {
-  company: string
-  role: string
-  period: string
-  highlights: string[]
+  empresa: string
+  cargo: string
+  periodo: string
+  realizacoes: string[]
 }
 
 export interface Education {
-  institution: string
-  degree: string
-  field: string
-  period: string
+  instituicao: string
+  grau: string
+  curso: string
+  periodo: string
 }
 
 export interface Language {
-  language: string
-  level: string
+  idioma: string
+  nivel: string
 }
 
 export interface Certification {
-  name: string
-  issuer: string
-  year: string
+  nome: string
+  instituicao: string
+  ano: string
 }
 
 export type ResumeStatus = 'processing' | 'completed' | 'error'

@@ -278,22 +278,30 @@ async def parse_resume(req: ParseResumeRequest):
                 detail="Não foi possível extrair texto do arquivo.",
             )
 
+        print(f"[parse-resume] extracted_text ({len(extracted_text)} chars):")
+        print(extracted_text[:2000])
+
         prompt = f"""Você é um especialista em extração de dados de currículos.
 O texto abaixo foi extraído via OCR (reconhecimento óptico de caracteres).
 Corrija possíveis erros de OCR como acentos perdidos, caracteres trocados,
 palavras grudadas ou cortadas em quebras de linha, e letras maiúsculas/minúsculas.
 
-Extraia os dados estruturados e retorne EXATAMENTE este JSON aninhado:
+Extraia os dados estruturados em PORTUGUÊS e retorne EXATAMENTE este JSON aninhado:
 {{
-  "personal": {{"name": "...", "email": "...", "phone": "...", "location": "...", "summary": "..."}},
-  "experience": [{{"company": "...", "role": "...", "period": "...", "highlights": ["..."]}}],
-  "education": [{{"institution": "...", "degree": "...", "field": "...", "period": "..."}}],
-  "skills": ["..."],
-  "languages": [{{"language": "...", "level": "..."}}],
-  "certifications": [{{"name": "...", "issuer": "...", "year": "..."}}]
+  "personal": {{"nome": "...", "email": "...", "telefone": "...", "linkedin": "...", "endereco": "...", "resumo": "..."}},
+  "experiencia": [{{"empresa": "...", "cargo": "...", "periodo": "...", "realizacoes": ["..."]}}],
+  "educacao": [{{"instituicao": "...", "grau": "...", "curso": "...", "periodo": "..."}}],
+  "habilidades": ["PHP", "Python", "React", "JavaScript"],
+  "idiomas": [{{"idioma": "...", "nivel": "..."}}],
+  "certificacoes": [{{"nome": "...", "instituicao": "...", "ano": "..."}}]
 }}
 
-Preencha campos vazios com string vazia "" e listas vazias com [].
+REGRAS IMPORTANTES:
+- Extraia CADA habilidade (técnica ou comportamental) como UM item separado na lista "habilidades"
+- Habilidades agrupadas em frases como "Conhecimento em Python, Java e SQL" devem virar ["Python", "Java", "SQL"]
+- Os nomes dos campos DEVEM ficar EXATAMENTE como no JSON acima (em português)
+- Se não encontrar nenhuma habilidade, retorne lista vazia []
+- Preencha campos vazios com string vazia "" e listas vazias com []
 
 Texto do currículo:
 {extracted_text}
@@ -305,6 +313,9 @@ Retorne APENAS o JSON, sem formatação markdown."""
             model="gemini-flash-latest",
             contents=[prompt],
         )
+
+        print(f"[parse-resume] Gemini response ({len(response.text)} chars):")
+        print(response.text[:2000])
 
         data = extract_json_from_response(response.text)
         return {"success": True, "data": data}

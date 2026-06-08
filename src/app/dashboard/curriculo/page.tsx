@@ -90,8 +90,8 @@ export default function CurriculoPage() {
                     )}
                   </div>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    {resume.parsedData?.personal?.name
-                      ? `${resume.parsedData.personal.name} — ${resume.parsedData.skills?.length ?? 0} habilidades`
+                    {resume.parsedData?.personal?.nome
+                      ? `${resume.parsedData.personal.nome} — ${resume.parsedData.habilidades?.length ?? 0} habilidades`
                       : resume.parsedData
                         ? 'Processamento incompleto — dados parciais'
                         : resume.status === 'error'
