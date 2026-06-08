@@ -27,7 +27,7 @@ export default function ConfiguracoesPage() {
         <CardContent className="space-y-6">
           <div className="flex items-center gap-4">
             <Avatar className="h-16 w-16">
-              <AvatarImage src={profile?.photoURL || ''} />
+              {profile?.photoURL ? <AvatarImage src={profile.photoURL} /> : null}
               <AvatarFallback className="text-lg">
                 {profile?.name?.charAt(0).toUpperCase()}
               </AvatarFallback>
