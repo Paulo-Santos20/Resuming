@@ -9,11 +9,14 @@ import {
   addDoc,
   doc,
   updateDoc,
+  deleteDoc,
+  getDoc,
   limit,
 } from 'firebase/firestore'
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
+import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage'
 import { getDbInstance, getStorageInstance, getAuthInstance } from '@/lib/firebase'
 import { toastSuccess, toastError } from '@/lib/toast'
+import { useProcessing } from '@/contexts/processing-context'
 import type { Resume, ResumeVersion, ResumeData } from '@/types'
 
 export function useResume(userId: string | undefined) {
@@ -22,6 +25,7 @@ export function useResume(userId: string | undefined) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const resumesRef = useRef<Resume[]>([])
+  const processing = useProcessing()
 
   const fetchResumes = useCallback(async () => {
     if (!userId) return
@@ -63,6 +67,7 @@ export function useResume(userId: string | undefined) {
           downloadURL,
           originalText: '',
           parsedData: null,
+          status: 'processing',
           createdAt: Date.now(),
           updatedAt: Date.now(),
         })
@@ -70,23 +75,10 @@ export function useResume(userId: string | undefined) {
         const idToken = await getAuthInstance().currentUser?.getIdToken()
         if (!idToken) throw new Error('Token de autenticação não disponível')
 
-        const response = await fetch('/api/python/parse-resume', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` },
-          body: JSON.stringify({ fileUrl: downloadURL, uid: userId }),
-        })
-
-        if (!response.ok) throw new Error('Erro ao processar currículo')
-
-        const { data }: { data: ResumeData } = await response.json()
-
-        await updateDoc(doc(dbInstance, 'users', userId, 'resumes', docRef.id), {
-          parsedData: data,
-          updatedAt: Date.now(),
-        })
+        processing.register(docRef.id, file.name)
+        processInBackground(docRef.id, downloadURL, idToken, userId, processing)
 
         await fetchResumes()
-        toastSuccess('Currículo enviado', `${file.name} foi processado com sucesso`)
         return docRef.id
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : 'Erro ao enviar currículo'
@@ -97,7 +89,7 @@ export function useResume(userId: string | undefined) {
         setLoading(false)
       }
     },
-    [userId, fetchResumes]
+    [userId, fetchResumes, processing.register]
   )
 
   const fetchVersions = useCallback(
@@ -177,5 +169,126 @@ export function useResume(userId: string | undefined) {
     [userId, fetchVersions]
   )
 
-  return { resumes, versions, loading, error, fetchResumes, fetchVersions, uploadResume, editResume }
+  const deleteResume = useCallback(async (resumeId: string) => {
+    if (!userId) throw new Error('Usuário não autenticado')
+    const dbInstance = getDbInstance()
+    const storageInstance = getStorageInstance()
+    setError(null)
+    try {
+      const snap = await getDoc(doc(dbInstance, 'users', userId, 'resumes', resumeId))
+      if (!snap.exists()) throw new Error('Currículo não encontrado')
+      const resumeData = snap.data() as Resume
+
+      if (resumeData.storagePath) {
+        const storageRef = ref(storageInstance, resumeData.storagePath)
+        await deleteObject(storageRef)
+      }
+
+      const versionsSnap = await getDocs(
+        collection(dbInstance, 'users', userId, 'resumes', resumeId, 'versions')
+      )
+      await Promise.all(
+        versionsSnap.docs.map((v) =>
+          deleteDoc(doc(dbInstance, 'users', userId, 'resumes', resumeId, 'versions', v.id))
+        )
+      )
+
+      await deleteDoc(doc(dbInstance, 'users', userId, 'resumes', resumeId))
+      setResumes((prev) => prev.filter((r) => r.id !== resumeId))
+      resumesRef.current = resumesRef.current.filter((r) => r.id !== resumeId)
+      toastSuccess('Currículo excluído')
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Erro ao excluir currículo'
+      setError(message)
+      toastError('Erro ao excluir currículo', message)
+      throw err
+    }
+  }, [userId])
+
+  return { resumes, versions, loading, error, fetchResumes, fetchVersions, uploadResume, editResume, deleteResume }
+}
+
+async function processInBackground(
+  resumeId: string,
+  downloadURL: string,
+  idToken: string,
+  uid: string,
+  ctx: ReturnType<typeof useProcessing>,
+) {
+  const db = getDbInstance()
+  const maxAttempts = 10
+
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    ctx.updateProgress(resumeId, 25 + Math.min(attempt * 7, 55))
+
+    try {
+      const response = await fetch('/api/python/parse-resume', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` },
+        body: JSON.stringify({ fileUrl: downloadURL, uid }),
+      })
+
+      if (response.ok) {
+        const { data }: { data: ResumeData } = await response.json()
+        ctx.updateProgress(resumeId, 90)
+
+        await updateDoc(doc(db, 'users', uid, 'resumes', resumeId), {
+          parsedData: data,
+          status: 'completed',
+          updatedAt: Date.now(),
+        })
+
+        ctx.complete(
+          resumeId,
+          data.personal?.name ?? 'Nome não detectado',
+          data.skills?.length ?? 0,
+        )
+        toastSuccess('Currículo processado', `${data.personal?.name ?? 'Currículo'} — ${data.skills?.length ?? 0} habilidades`)
+        return
+      }
+
+      const body = await response.json().catch(() => ({}))
+      const detail = body.detail || body.error || ''
+
+      if (response.status === 422) {
+        ctx.fail(resumeId, detail || 'Não foi possível extrair dados do PDF')
+        await updateDoc(doc(db, 'users', uid, 'resumes', resumeId), {
+          status: 'error',
+          error: detail || 'Falha na extração',
+        })
+        toastError('Erro no processamento', detail || 'PDF inválido')
+        return
+      }
+
+      if (attempt >= maxAttempts - 1) {
+        ctx.fail(resumeId, 'Serviço temporariamente indisponível')
+        await updateDoc(doc(db, 'users', uid, 'resumes', resumeId), {
+          status: 'error',
+          error: 'Tentativas esgotadas',
+        })
+        toastError('Processamento falhou', 'Tentativas esgotadas após alta demanda')
+        return
+      }
+
+      ctx.updateProgress(resumeId, 30 + attempt * 5)
+      await sleep(5000)
+    } catch (err) {
+      if (attempt >= maxAttempts - 1) {
+        const msg = err instanceof Error ? err.message : 'Erro no processamento'
+        ctx.fail(resumeId, msg)
+        await updateDoc(doc(db, 'users', uid, 'resumes', resumeId), {
+          status: 'error',
+          error: msg,
+        })
+        toastError('Processamento falhou', msg)
+        return
+      }
+      ctx.updateProgress(resumeId, 30 + attempt * 5)
+      await sleep(5000)
+    }
+  }
+}
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms))
 }

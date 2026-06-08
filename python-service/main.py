@@ -8,7 +8,6 @@ from fastapi import FastAPI, HTTPException, Header
 from pydantic import BaseModel
 from google import genai
 from google.genai import types
-from weasyprint import HTML
 from fastapi.responses import Response
 
 app = FastAPI(title="Resume React - Python Service")
@@ -78,6 +77,36 @@ def get_genai_client():
 
     _genai_client = genai.Client(api_key=api_key)
     return _genai_client
+
+
+def _is_retryable_error(e: Exception) -> bool:
+    msg = str(e).lower()
+    status = getattr(e, "code", 0) if hasattr(e, "code") else 0
+    retryable_codes = {429, 500, 502, 503, 504}
+    if status in retryable_codes:
+        return True
+    for keyword in ("resource exhausted", "unavailable", "deadline exceeded", "too many requests", "internal server error"):
+        if keyword in msg:
+            return True
+    return False
+
+def call_gemini_with_retry(client, model, contents=None, config=None):
+    import time
+    last_error = None
+    for attempt in range(3):
+        try:
+            if config:
+                return client.models.generate_content(model=model, contents=contents, config=config)
+            return client.models.generate_content(model=model, contents=contents)
+        except Exception as e:
+            last_error = e
+            if attempt < 2 and _is_retryable_error(e):
+                delay = 2 ** (attempt + 1)
+                print(f"    [retry] Gemini falhou (tentativa {attempt + 1}/3), tentando novamente em {delay}s: {e}")
+                time.sleep(delay)
+            else:
+                raise
+    raise last_error
 
 
 class ParseResumeRequest(BaseModel):
@@ -233,8 +262,9 @@ Texto do currículo:
 
 Retorne APENAS o JSON, sem formatação markdown."""
 
-        response = get_genai_client().models.generate_content(
-            model="gemini-2.0-flash",
+        response = call_gemini_with_retry(
+            get_genai_client(),
+            model="gemini-flash-latest",
             contents=[prompt],
         )
 
@@ -270,8 +300,9 @@ Formato HTML esperado:
 - Máximo 2 páginas
 - Retorne APENAS o HTML, sem formatação markdown"""
 
-        response = get_genai_client().models.generate_content(
-            model="gemini-2.0-flash",
+        response = call_gemini_with_retry(
+            get_genai_client(),
+            model="gemini-flash-latest",
             config=types.GenerateContentConfig(
                 system_instruction=RESUME_SYSTEM_PROMPT,
             ),
@@ -312,8 +343,9 @@ Texto extraído:
 
 Retorne APENAS o JSON, sem formatação markdown."""
 
-        response = get_genai_client().models.generate_content(
-            model="gemini-2.0-flash",
+        response = call_gemini_with_retry(
+            get_genai_client(),
+            model="gemini-flash-latest",
             contents=[prompt],
         )
 
@@ -326,6 +358,7 @@ Retorne APENAS o JSON, sem formatação markdown."""
 @app.post("/generate-pdf")
 async def generate_pdf(req: GeneratePdfRequest):
     try:
+        from weasyprint import HTML
         html_str = req.htmlContent
         if not html_str.strip().startswith("<"):
             html_str = f"""<!DOCTYPE html>
@@ -359,8 +392,9 @@ Currículo (HTML):
 Retorne um JSON com subject e body.
 Exemplo: {{"subject": "Candidatura — Engenheiro de Software Sênior", "body": "<p>...</p>"}}"""
 
-        response = get_genai_client().models.generate_content(
-            model="gemini-2.0-flash",
+        response = call_gemini_with_retry(
+            get_genai_client(),
+            model="gemini-flash-latest",
             config=types.GenerateContentConfig(
                 system_instruction=EMAIL_SYSTEM_PROMPT,
             ),

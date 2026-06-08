@@ -28,7 +28,7 @@ export function JobCard({ job }: JobCardProps) {
           <div className="min-w-0 flex-1">
             <Link
               href={`/dashboard/vagas/${job.id}`}
-              className="font-display font-semibold text-lg hover:text-[--color-brand] transition-colors line-clamp-1"
+              className="font-display font-semibold text-lg hover:text-brand transition-colors line-clamp-1"
             >
               {job.title}
             </Link>
@@ -66,7 +66,7 @@ export function JobCard({ job }: JobCardProps) {
               </Button>
             </>
           )}
-          <Button variant="ghost" size="sm" asChild className="ml-auto">
+          <Button variant="ghost" size="sm" asChild className="ml-auto" aria-label="Ver detalhes">
             <Link href={`/dashboard/vagas/${job.id}`}>
               <ArrowRight className="h-3.5 w-3.5" />
             </Link>

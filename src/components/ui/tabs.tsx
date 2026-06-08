@@ -64,6 +64,7 @@ const TabsTrigger = React.forwardRef<HTMLButtonElement, TabsTriggerProps>(
     return (
       <button
         ref={ref}
+        type="button"
         role="tab"
         aria-selected={isActive}
         data-state={isActive ? 'active' : 'inactive'}

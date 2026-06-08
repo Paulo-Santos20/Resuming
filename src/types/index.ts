@@ -49,13 +49,17 @@ export interface Certification {
   year: string
 }
 
+export type ResumeStatus = 'processing' | 'completed' | 'error'
+
 export interface Resume {
   id: string
   userId: string
   originalFileName: string
   originalText: string
   parsedData: ResumeData | null
+  status?: ResumeStatus
   storagePath: string
+  downloadURL: string
   createdAt: number
   updatedAt: number
 }

@@ -11,15 +11,25 @@ export async function POST(request: NextRequest) {
     const parsed = validateBody(ParseResumeApiSchema, body)
     if (parsed instanceof NextResponse) return parsed
 
-    const response = await fetch(`${PYTHON_SERVICE_URL}/parse-resume`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ fileUrl: parsed.fileUrl, uid: uidOrResponse }),
-    })
+    let response: Response
+    try {
+      response = await fetch(`${PYTHON_SERVICE_URL}/parse-resume`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fileUrl: parsed.fileUrl, uid: uidOrResponse }),
+        signal: AbortSignal.timeout(60000),
+      })
+    } catch {
+      return NextResponse.json(
+        { error: 'Serviço de processamento indisponível. Verifique se o backend Python está rodando.' },
+        { status: 503 }
+      )
+    }
 
     if (!response.ok) {
-      const error = await response.text()
-      return NextResponse.json({ error }, { status: response.status })
+      const body = await response.json().catch(() => ({}))
+      const detail = body.detail || body.error || await response.text().catch(() => 'Erro desconhecido')
+      return NextResponse.json({ error: detail, detail }, { status: response.status })
     }
 
     const data = await response.json()

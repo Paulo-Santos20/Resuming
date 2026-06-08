@@ -6,9 +6,12 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { Separator } from '@/components/ui/separator'
 import { Button } from '@/components/ui/button'
 import { LogOut, Trash2 } from 'lucide-react'
+import { useEffect } from 'react'
 
 export default function ConfiguracoesPage() {
   const { profile, logout } = useAuth()
+
+  useEffect(() => { document.title = 'Configurações — Resume React' }, [])
 
   return (
     <div className="max-w-2xl mx-auto space-y-8">
@@ -48,7 +51,7 @@ export default function ConfiguracoesPage() {
         <CardContent className="space-y-4">
           <Button
             variant="outline"
-            className="w-full justify-start text-[--color-destructive] hover:text-[--color-destructive-text] hover:bg-[--color-destructive-bg]"
+            className="w-full justify-start text-destructive hover:text-destructive-text hover:bg-destructive-bg"
             onClick={logout}
           >
             <LogOut className="h-4 w-4 mr-2" />

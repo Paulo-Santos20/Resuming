@@ -72,7 +72,7 @@ export function ResumeVersionList({ versions, onPreview }: ResumeVersionListProp
             </p>
           </div>
           <div className="flex items-center gap-2 ml-4">
-            <Button variant="ghost" size="icon" onClick={() => onPreview(version)}>
+            <Button variant="ghost" size="icon" onClick={() => onPreview(version)} aria-label="Visualizar">
               <Eye className="h-4 w-4" />
             </Button>
             <Button
@@ -80,6 +80,7 @@ export function ResumeVersionList({ versions, onPreview }: ResumeVersionListProp
               size="icon"
               onClick={() => handleDownload(version)}
               disabled={!version.content}
+              aria-label="Baixar"
             >
               <Download className="h-4 w-4" />
             </Button>
