@@ -11,9 +11,6 @@ const nextConfig: NextConfig = {
       '@radix-ui/react-slot',
       '@tiptap/react',
       '@tiptap/starter-kit',
-      'firebase/auth',
-      'firebase/firestore',
-      'firebase/storage',
     ],
   },
   images: {
