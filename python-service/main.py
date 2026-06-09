@@ -10,6 +10,11 @@ from google import genai
 from google.genai import types
 from fastapi.responses import Response
 
+from dotenv import load_dotenv
+dotenv_path = os.path.join(os.path.dirname(__file__), '..', '.env.local')
+if os.path.exists(dotenv_path):
+    load_dotenv(dotenv_path)
+
 app = FastAPI(title="Resume React - Python Service")
 
 _firebase_initialized = False
@@ -90,15 +95,19 @@ def ocr_file(file_bytes: bytes) -> str:
             return "\n".join(line[1][0] for line in result[0])
         return ""
 
-_genai_client = None
+GEMINI_MODEL = "gemini-2.5-flash"
 
-def get_genai_client():
-    global _genai_client
-    if _genai_client is not None:
-        return _genai_client
 
-    api_key = os.environ.get("GEMINI_API_KEY", "")
+def _get_api_keys() -> list[str]:
+    keys = os.environ.get("GEMINI_API_KEY", "")
+    return [k.strip() for k in keys.split(",") if k.strip()]
 
+
+def get_genai_client(key: Optional[str] = None):
+    api_key = key
+    if not api_key:
+        keys = _get_api_keys()
+        api_key = keys[0] if keys else ""
     if not api_key:
         try:
             from google.cloud import secretmanager
@@ -108,9 +117,7 @@ def get_genai_client():
             api_key = response.payload.data.decode("utf-8")
         except Exception:
             pass
-
-    _genai_client = genai.Client(api_key=api_key)
-    return _genai_client
+    return genai.Client(api_key=api_key)
 
 
 def _is_retryable_error(e: Exception) -> bool:
@@ -123,6 +130,13 @@ def _is_retryable_error(e: Exception) -> bool:
         if keyword in msg:
             return True
     return False
+
+
+def _is_quota_error(e: Exception) -> bool:
+    msg = str(e).lower()
+    status = getattr(e, "code", 0) if hasattr(e, "code") else 0
+    return status == 429 or "resource exhausted" in msg or "quota exceeded" in msg
+
 
 def call_gemini_with_retry(client, model, contents=None, config=None):
     import time
@@ -141,6 +155,22 @@ def call_gemini_with_retry(client, model, contents=None, config=None):
             else:
                 raise
     raise last_error
+
+
+def call_gemini_with_key_rotation(keys=None, model=GEMINI_MODEL, contents=None, config=None):
+    if keys is None:
+        keys = _get_api_keys()
+    if not keys:
+        raise ValueError("Nenhuma chave GEMINI_API_KEY configurada")
+    for i, key in enumerate(keys):
+        try:
+            client = get_genai_client(key)
+            return call_gemini_with_retry(client, model, contents, config)
+        except Exception as e:
+            if _is_quota_error(e) and i < len(keys) - 1:
+                print(f"    [key rotation] Chave {i+1} quota exaurida, tentando próxima...")
+                continue
+            raise
 
 
 class ParseResumeRequest(BaseModel):
@@ -340,9 +370,7 @@ Texto do currículo:
 
 Retorne APENAS o JSON, sem formatação markdown."""
 
-        response = call_gemini_with_retry(
-            get_genai_client(),
-            model="gemini-flash-latest",
+        response = call_gemini_with_key_rotation(
             contents=[prompt],
         )
 
@@ -363,10 +391,7 @@ Retorne APENAS o JSON, sem formatação markdown."""
 @app.get("/debug/gemini")
 async def debug_gemini():
     try:
-        client = get_genai_client()
-        response = call_gemini_with_retry(
-            client,
-            model="gemini-flash-latest",
+        response = call_gemini_with_key_rotation(
             contents=["Responda apenas: OK"],
         )
         return {"status": "ok", "text": response.text}
@@ -400,9 +425,7 @@ Formato HTML esperado:
 - Máximo 2 páginas
 - Retorne APENAS o HTML, sem formatação markdown"""
 
-        response = call_gemini_with_retry(
-            get_genai_client(),
-            model="gemini-flash-latest",
+        response = call_gemini_with_key_rotation(
             config=types.GenerateContentConfig(
                 system_instruction=RESUME_SYSTEM_PROMPT,
             ),
@@ -435,9 +458,7 @@ Texto extraído:
 
 Retorne APENAS o JSON, sem formatação markdown."""
 
-        response = call_gemini_with_retry(
-            get_genai_client(),
-            model="gemini-flash-latest",
+        response = call_gemini_with_key_rotation(
             contents=[prompt],
         )
 
@@ -486,9 +507,7 @@ Currículo (HTML):
 Retorne um JSON com subject e body.
 Exemplo: {{"subject": "Candidatura — Engenheiro de Software Sênior", "body": "<p>...</p>"}}"""
 
-        response = call_gemini_with_retry(
-            get_genai_client(),
-            model="gemini-flash-latest",
+        response = call_gemini_with_key_rotation(
             config=types.GenerateContentConfig(
                 system_instruction=EMAIL_SYSTEM_PROMPT,
             ),
