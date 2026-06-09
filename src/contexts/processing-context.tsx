@@ -152,18 +152,18 @@ function CompletionModal({
             <DialogTitle>Currículo Processado</DialogTitle>
           </div>
         </DialogHeader>
-        <DialogDescription className="space-y-3 pt-2">
+        <div className="space-y-3 pt-2 text-sm text-muted-foreground">
           <div className="flex items-center gap-2 text-sm">
             <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
             <span className="font-medium text-foreground">{item.fileName}</span>
           </div>
           {item.name && (
-            <p className="text-sm">
+            <span className="block">
               {item.name}
               {item.skillsCount != null && <span> — {item.skillsCount} habilidades detectadas</span>}
-            </p>
+            </span>
           )}
-        </DialogDescription>
+        </div>
         <DialogFooter>
           <Button onClick={onDismiss}>
             Fechar
