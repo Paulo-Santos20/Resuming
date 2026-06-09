@@ -217,7 +217,8 @@ Sua função é adaptar currículos para vagas específicas seguindo rigorosamen
 5. Mantenha o currículo em 1-2 páginas
 6. Preserve a cronologia exata das experiências - não reorganize datas
 7. Formate a saída como HTML bem estruturado para conversão em PDF
-8. IDIOMA: Responda EM PORTUGUÊS (pt-BR)"""
+8. IDIOMA: Responda EM PORTUGUÊS (pt-BR)
+9. NUNCA use primeira pessoa do singular ("eu fiz", "minha experiência"). Comece as descrições diretamente com verbo de ação no infinitivo ou substantivo: "Gestão de equipe…", "Desenvolvimento de sistema…" em vez de "Eu gerenciei…", "Minha experiência inclui…""""
 
 EMAIL_SYSTEM_PROMPT = """Você é um assistente de comunicação profissional.
 Gere um email em HTML bem formatado e humanizado para envio de currículo.
@@ -423,6 +424,7 @@ Formato HTML esperado:
 - Margens: 20mm
 - Seções: Dados Pessoais, Resumo, Experiência, Educação, Habilidades, Idiomas
 - Máximo 2 páginas
+- NUNCA use primeira pessoa ("eu fiz", "minha experiência"). Escreva de forma impessoal: "Gestão de equipe…", "Desenvolvimento de…" em vez de "Eu gerenciei…"
 - Retorne APENAS o HTML, sem formatação markdown"""
 
         response = call_gemini_with_key_rotation(

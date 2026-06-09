@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
-import { Eye, Trash2, Clock } from 'lucide-react'
+import { Eye, Trash2, Clock, ExternalLink } from 'lucide-react'
 
 export default function CurriculoPage() {
   const { user } = useAuth()
@@ -101,18 +101,18 @@ export default function CurriculoPage() {
                 </div>
                 <div className="flex items-center gap-1 ml-4">
                     <Button
-                    variant="ghost"
-                    size="icon"
-                    aria-label="Visualizar PDF"
-                    onClick={() => {
-                      const url = resume.downloadURL || (
-                        `https://firebasestorage.googleapis.com/v0/b/${process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET}/o/${encodeURIComponent(resume.storagePath)}?alt=media`
-                      )
-                      window.open(url, '_blank')
-                    }}
-                  >
-                    <Eye className="h-4 w-4" />
-                  </Button>
+                      variant="ghost"
+                      size="icon"
+                      aria-label="Visualizar PDF"
+                      onClick={() => {
+                        const url = resume.downloadURL || (
+                          `https://firebasestorage.googleapis.com/v0/b/${process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET}/o/${encodeURIComponent(resume.storagePath)}?alt=media`
+                        )
+                        window.open(url, '_blank')
+                      }}
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
                   <Button
                     variant="ghost"
                     size="icon"
@@ -142,6 +142,18 @@ export default function CurriculoPage() {
         variant="destructive"
         loading={deleting}
       />
+
+      <div className="flex items-center gap-4 pt-4 text-xs text-muted-foreground border-t">
+        <span className="font-medium">Resuming v1.0</span>
+        <a href="https://github.com/Paulo-Santos20/Resuming" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 hover:text-primary transition-colors">
+          <ExternalLink className="h-3 w-3" />
+          Repositório
+        </a>
+        <a href="https://resuming-seven.vercel.app/" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 hover:text-primary transition-colors">
+          <ExternalLink className="h-3 w-3" />
+          Site
+        </a>
+      </div>
     </div>
   )
 }
