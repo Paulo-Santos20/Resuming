@@ -9,7 +9,7 @@ export default function LoginPage() {
   const { user, loading } = useAuth()
   const router = useRouter()
 
-  useEffect(() => { document.title = 'Login — Resume React' }, [])
+  useEffect(() => { document.title = 'Login — Resuming' }, [])
 
   useEffect(() => {
     if (!loading && user) router.push('/dashboard')
@@ -35,7 +35,7 @@ export default function LoginPage() {
           <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-brand text-white font-display font-bold text-xl">
             R
           </div>
-          <span className="font-display font-semibold text-2xl">Resume React</span>
+          <span className="font-display font-semibold text-2xl">Resuming</span>
         </div>
         <div className="w-full flex justify-center">
           <GoogleLoginButton />

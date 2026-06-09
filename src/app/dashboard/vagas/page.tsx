@@ -13,7 +13,7 @@ export default function VagasPage() {
   const { user } = useAuth()
   const { jobs, loading, fetchJobs } = useJobs(user?.uid)
 
-  useEffect(() => { document.title = 'Vagas — Resume React' }, [])
+  useEffect(() => { document.title = 'Vagas — Resuming' }, [])
 
   useEffect(() => {
     if (user?.uid) fetchJobs()

@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { JobForm } from '@/components/job/job-form'
 
 export default function NovaVagaPage() {
-  useEffect(() => { document.title = 'Nova Vaga — Resume React' }, [])
+  useEffect(() => { document.title = 'Nova Vaga — Resuming' }, [])
   const { user } = useAuth()
   const { loading, createJob } = useJobs(user?.uid)
   const router = useRouter()

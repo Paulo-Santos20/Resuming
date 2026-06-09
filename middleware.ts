@@ -58,6 +58,7 @@ export function middleware(request: NextRequest) {
     'camera=(), microphone=(), geolocation=()'
   )
   response.headers.set('Content-Security-Policy', CSP_HEADER)
+  response.headers.set('Cross-Origin-Opener-Policy', 'same-origin-allow-popups')
   response.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
 
   return response

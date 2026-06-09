@@ -18,7 +18,7 @@ export default function CurriculoPage() {
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
 
-  useEffect(() => { document.title = 'Currículo — Resume React' }, [])
+  useEffect(() => { document.title = 'Currículo — Resuming' }, [])
 
   useEffect(() => {
     if (user?.uid) fetchResumes()

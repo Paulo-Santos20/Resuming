@@ -118,7 +118,7 @@ export function Sidebar({ onLogout, userName, userEmail, photoURL, mobileOpen, o
                   R
                 </div>
                 <div className="min-w-0">
-                  <h2 className="font-display font-semibold text-sm truncate text-foreground">Resume React</h2>
+                  <h2 className="font-display font-semibold text-sm truncate text-foreground">Resuming</h2>
                   <p className="text-xs text-muted-foreground truncate leading-tight">Currículos inteligentes</p>
                 </div>
               </div>

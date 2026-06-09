@@ -45,7 +45,7 @@ export default function Home() {
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground font-display font-bold text-lg">
             R
           </div>
-          <span className="font-display font-semibold text-xl text-foreground">Resume React</span>
+          <span className="font-display font-semibold text-xl text-foreground">Resuming</span>
         </div>
       </header>
 

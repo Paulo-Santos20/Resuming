@@ -20,7 +20,7 @@ dotenv_path = os.path.join(os.path.dirname(__file__), '..', '.env.local')
 if os.path.exists(dotenv_path):
     load_dotenv(dotenv_path)
 
-app = FastAPI(title="Resume React - Python Service")
+app = FastAPI(title="Resuming - Python Service")
 
 _firebase_initialized = False
 

@@ -69,7 +69,7 @@ export default function VagaDetalhePage() {
   const [generating, setGenerating] = useState(false)
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => { document.title = job ? `${job.title} — Resume React` : 'Vaga — Resume React' }, [job])
+  useEffect(() => { document.title = job ? `${job.title} — Resuming` : 'Vaga — Resuming' }, [job])
 
   useEffect(() => {
     if (user?.uid) fetchResumes()

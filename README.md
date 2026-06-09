@@ -1,4 +1,4 @@
-# Resume React
+# Resuming
 
 Aplicação web para criar currículos otimizados para cada vaga com IA.
 

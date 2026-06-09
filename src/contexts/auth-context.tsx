@@ -101,7 +101,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  const login = useCallback(async () => {
+  const login = useCallback(async (): Promise<User> => {
     const authInstance = getAuthInstance()
     const dbInstance = getDbInstance()
     setError(null)
@@ -126,6 +126,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       toastSuccess('Login realizado', `Bem-vindo, ${displayName || 'usuário'}!`)
       return result.user
     } catch (err: unknown) {
+      if (err instanceof Error && 'code' in err && (err as any).code === 'auth/popup-closed-by-user') {
+        return getAuthInstance().currentUser!
+      }
       const message = err instanceof Error ? err.message : 'Erro ao fazer login'
       setError(message)
       toastError('Erro ao fazer login', message)
@@ -146,6 +149,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       return token
     } catch (err: unknown) {
+      if (err instanceof Error && 'code' in err && (err as any).code === 'auth/popup-closed-by-user') {
+        return null
+      }
       const message = err instanceof Error ? err.message : 'Erro ao conectar Gmail'
       setError(message)
       toastError('Erro ao conectar Gmail', message)

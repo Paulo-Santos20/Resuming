@@ -77,7 +77,7 @@ export default function EditarCurriculoDirectPage() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    document.title = 'Editar Currículo — Resume React'
+    document.title = 'Editar Currículo — Resuming'
   }, [])
 
   useEffect(() => {
