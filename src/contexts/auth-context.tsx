@@ -7,6 +7,7 @@ import {
   signOut,
   User,
   GoogleAuthProvider,
+  browserPopupRedirectResolver,
 } from 'firebase/auth'
 import { doc, setDoc, getDoc } from 'firebase/firestore'
 import { getAuthInstance, getDbInstance, getGoogleProvider } from '@/lib/firebase'
@@ -105,7 +106,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const dbInstance = getDbInstance()
     setError(null)
     try {
-      const result = await signInWithPopup(authInstance, getGoogleProvider())
+      const result = await signInWithPopup(authInstance, getGoogleProvider(), browserPopupRedirectResolver)
       const credential = GoogleAuthProvider.credentialFromResult(result)
       const token = credential?.accessToken || null
       if (token) {
@@ -135,7 +136,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const refreshGoogleToken = useCallback(async () => {
     const authInstance = getAuthInstance()
     try {
-      const result = await signInWithPopup(authInstance, getGoogleProvider())
+      const result = await signInWithPopup(authInstance, getGoogleProvider(), browserPopupRedirectResolver)
       const credential = GoogleAuthProvider.credentialFromResult(result)
       const token = credential?.accessToken || null
       if (token) {
