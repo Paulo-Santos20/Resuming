@@ -18,13 +18,19 @@ export const SendEmailApiSchema = z.object({
   accessToken: z.string().min(1, 'Token de acesso é obrigatório'),
 })
 
-export const UploadResumeSchema = z.object({
-  fileSize: z.number().max(10 * 1024 * 1024, 'Arquivo deve ter no máximo 10MB'),
-  fileType: z.string().refine((v) => v === 'application/pdf', 'Apenas arquivos PDF são aceitos'),
-})
+const ALLOWED_DOMAINS = ['firebasestorage.googleapis.com', 'lh3.googleusercontent.com']
+
+function validateFirebaseUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url)
+    return ALLOWED_DOMAINS.includes(parsed.hostname)
+  } catch {
+    return false
+  }
+}
 
 export const ParseResumeApiSchema = z.object({
-  fileUrl: z.string().url('URL inválida'),
+  fileUrl: z.string().url('URL inválida').refine(validateFirebaseUrl, 'URL deve ser do Firebase Storage'),
 })
 
 export const EditResumeApiSchema = z.object({
@@ -35,7 +41,7 @@ export const EditResumeApiSchema = z.object({
 })
 
 export const OcrJobApiSchema = z.object({
-  photoUrl: z.string().url('URL inválida'),
+  photoUrl: z.string().url('URL inválida').refine(validateFirebaseUrl, 'URL deve ser do Firebase Storage'),
 })
 
 export const GeneratePdfApiSchema = z.object({

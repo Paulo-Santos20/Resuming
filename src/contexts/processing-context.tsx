@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useState, useCallback, useRef, type ReactNode } from 'react'
+import { createContext, useContext, useState, useCallback, useRef, useMemo, type ReactNode } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Loader2, CheckCircle2, FileText } from 'lucide-react'
@@ -98,8 +98,12 @@ export function ProcessingProvider({ children }: { children: ReactNode }) {
 
   const dismissModal = useCallback(() => setLastCompleted(null), [])
 
+  const value = useMemo(() => ({
+    items, register, updateProgress, complete, fail, remove, dismissModal, lastCompleted,
+  }), [items, lastCompleted, register, updateProgress, complete, fail, remove, dismissModal])
+
   return (
-    <ProcessingContext.Provider value={{ items, register, updateProgress, complete, fail, remove, dismissModal, lastCompleted }}>
+    <ProcessingContext.Provider value={value}>
       {children}
       <FloatingProgressBar items={items} />
       <CompletionModal item={lastCompleted} onDismiss={dismissModal} />
@@ -112,7 +116,7 @@ function FloatingProgressBar({ items }: { items: Record<string, ProcessingItem> 
   if (activeItems.length === 0) return null
 
   return (
-    <div className="fixed bottom-4 right-4 z-50 space-y-2 w-72">
+    <div className="fixed bottom-4 right-4 z-50 space-y-2 w-[calc(100vw-2rem)] sm:w-72">
       {activeItems.map(([id, item]) => (
         <div key={id} className="rounded-lg border bg-card p-3 shadow-lg">
           <div className="flex items-center gap-2 mb-2">

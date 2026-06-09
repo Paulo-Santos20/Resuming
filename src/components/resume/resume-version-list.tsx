@@ -67,9 +67,9 @@ export function ResumeVersionList({ versions, onPreview }: ResumeVersionListProp
           className="flex items-center justify-between rounded-lg border p-4 bg-card hover:shadow-sm transition-shadow"
         >
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2">
-              <p className="font-medium text-sm truncate">
-                v{version.versionNumber} — {version.jobTitle}
+            <div className="flex items-center gap-2 min-w-0">
+              <p className="font-medium text-sm truncate min-w-0">
+                v{version.versionNumber} — {version.jobTitle || 'Sem título'}
               </p>
               <Badge
                 variant={version.templateType === 'ats' ? 'default' : 'secondary'}

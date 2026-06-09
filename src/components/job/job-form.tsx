@@ -81,7 +81,7 @@ export function JobForm({ onSubmit, loading }: JobFormProps) {
               aria-selected={mode === 'text'}
               onClick={() => { setMode('text'); setPhotoFile(null) }}
               className={cn(
-                'px-3 py-1 text-xs rounded-md transition-colors',
+                'px-4 py-2 text-sm rounded-md transition-colors',
                 mode === 'text' ? 'bg-brand text-white' : 'text-muted-foreground'
               )}
             >
@@ -93,7 +93,7 @@ export function JobForm({ onSubmit, loading }: JobFormProps) {
               aria-selected={mode === 'photo'}
               onClick={() => setMode('photo')}
               className={cn(
-                'px-3 py-1 text-xs rounded-md transition-colors',
+                'px-4 py-2 text-sm rounded-md transition-colors',
                 mode === 'photo' ? 'bg-brand text-white' : 'text-muted-foreground'
               )}
             >

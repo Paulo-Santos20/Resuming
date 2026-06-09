@@ -90,7 +90,7 @@ export default function CurriculoPage() {
                       </Badge>
                     )}
                   </div>
-                  <p className="text-xs text-muted-foreground mt-0.5">
+                  <p className="text-xs text-muted-foreground mt-0.5 truncate">
                     {resume.parsedData?.personal?.nome
                       ? `${resume.parsedData.personal.nome} — ${resume.parsedData.habilidades?.length ?? 0} habilidades`
                       : resume.parsedData
@@ -100,7 +100,7 @@ export default function CurriculoPage() {
                           : 'Aguardando processamento pelo backend…'}
                   </p>
                 </div>
-                <div className="flex items-center gap-1 ml-4">
+                <div className="flex items-center gap-1 ml-4 shrink-0">
                     <Button
                       variant="ghost"
                       size="icon"

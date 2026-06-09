@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { verifyAuth, validateBody, PYTHON_SERVICE_URL } from '@/lib/api-helpers'
+import { verifyAuth, validateBody, PYTHON_SERVICE_URL, forwardAuth } from '@/lib/api-helpers'
 import { sanitizeHtml } from '@/lib/sanitize'
 import { EditResumeApiSchema } from '@/lib/validations'
 
@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
 
     const response = await fetch(`${PYTHON_SERVICE_URL}/edit-resume`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: forwardAuth(request),
       body: JSON.stringify({
         resumeData: parsed.resumeData,
         jobDescription: sanitizeHtml(parsed.jobDescription),
@@ -29,6 +29,9 @@ export async function POST(request: NextRequest) {
     }
 
     const data = await response.json()
+    if (data.html) {
+      data.html = sanitizeHtml(data.html)
+    }
     return NextResponse.json(data)
   } catch (err) {
     console.error('Edit resume error:', err)

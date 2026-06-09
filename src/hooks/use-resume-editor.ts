@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import { useEditor } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Underline from '@tiptap/extension-underline'
@@ -39,6 +39,10 @@ export function useResumeEditor({
   const [isDirty, setIsDirty] = useState(false)
   const [lastSaved, setLastSaved] = useState<number | null>(null)
   const [saving, setSaving] = useState(false)
+  const formattingRef = useRef(formatting)
+  const templateRef = useRef(templateStyle)
+  formattingRef.current = formatting
+  templateRef.current = templateStyle
 
   const editor = useEditor({
     extensions: [
@@ -53,7 +57,7 @@ export function useResumeEditor({
     onUpdate: () => setIsDirty(true),
     editorProps: {
       attributes: {
-        class: 'prose prose-sm max-w-none focus:outline-none min-h-[500px] px-4 py-4',
+        class: 'prose prose-sm max-w-none focus:outline-none min-h-[300px] md:min-h-[500px] px-4 py-4',
       },
     },
   })
@@ -69,6 +73,8 @@ export function useResumeEditor({
     try {
       const html = editor.getHTML()
       const db = getDbInstance()
+      const currentFormatting = formattingRef.current
+      const currentTemplate = templateRef.current
 
       sessionStorage.setItem(`edited-${jobId}`, html)
 
@@ -78,8 +84,8 @@ export function useResumeEditor({
       if (versionId) {
         await updateDoc(doc(versionsRef, versionId), {
           content: html,
-          templateStyle,
-          formatting,
+          templateStyle: currentTemplate,
+          formatting: currentFormatting,
           updatedAt: Date.now(),
         })
       } else {
@@ -93,8 +99,8 @@ export function useResumeEditor({
           jobId,
           jobTitle: '',
           content: html,
-          templateStyle,
-          formatting,
+          templateStyle: currentTemplate,
+          formatting: currentFormatting,
           templateType: 'original',
           versionNumber: nextVersion,
           createdAt: Date.now(),
@@ -109,7 +115,7 @@ export function useResumeEditor({
     } finally {
       setSaving(false)
     }
-  }, [user?.uid, resumeId, jobId, versionId, editor, templateStyle, formatting])
+  }, [user?.uid, resumeId, jobId, versionId, editor])
 
   return {
     editor,

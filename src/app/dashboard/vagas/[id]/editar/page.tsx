@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import dynamic from 'next/dynamic'
 import { useParams, useRouter } from 'next/navigation'
-import { doc, getDoc, collection, getDocs, updateDoc } from 'firebase/firestore'
+import { doc, getDoc, collection, collectionGroup, getDocs, updateDoc, query, orderBy, where } from 'firebase/firestore'
 import { getDbInstance } from '@/lib/firebase'
 import { useAuth } from '@/hooks/use-auth'
 import { Button } from '@/components/ui/button'
@@ -49,17 +49,15 @@ export default function EditarCurriculoPage() {
           setInitialContent(cached)
         }
 
-        const resumesSnap = await getDocs(collection(getDbInstance(), 'users', user.uid, 'resumes'))
-        const allVersions: ResumeVersion[] = []
-        for (const rDoc of resumesSnap.docs) {
-          const vSnap = await getDocs(
-            collection(getDbInstance(), 'users', user.uid, 'resumes', rDoc.id, 'versions')
-          )
-          vSnap.docs.forEach((d) => {
-            const v = { id: d.id, ...d.data() } as ResumeVersion
-            if (v.jobId === id) allVersions.push(v)
-          })
-        }
+        const versionsQuery = query(
+          collectionGroup(getDbInstance(), 'versions'),
+          where('jobId', '==', id),
+          orderBy('createdAt', 'desc')
+        )
+        const versionsSnap = await getDocs(versionsQuery)
+        const allVersions: ResumeVersion[] = versionsSnap.docs.map(
+          (d) => ({ id: d.id, ...d.data() }) as ResumeVersion
+        )
         if (allVersions.length > 0) {
           allVersions.sort((a, b) => b.createdAt - a.createdAt)
           const latest = allVersions[0]

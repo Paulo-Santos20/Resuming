@@ -42,32 +42,19 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
-      {/* Desktop sidebar */}
       <Sidebar
         onLogout={logout}
         userName={profile.name}
         userEmail={profile.email}
         photoURL={profile.photoURL}
+        mobileOpen={sidebarOpen}
+        onMobileClose={() => setSidebarOpen(false)}
       />
-
-      {/* Mobile overlay sidebar */}
-      {sidebarOpen && (
-        <div className="lg:hidden">
-          <Sidebar
-            mobile
-            onLogout={logout}
-            userName={profile.name}
-            userEmail={profile.email}
-            photoURL={profile.photoURL}
-            onClose={() => setSidebarOpen(false)}
-          />
-        </div>
-      )}
 
       {/* Main */}
       <main className="flex-1 overflow-y-auto">
         {/* Mobile top bar */}
-        <div className="sticky top-0 z-30 flex items-center gap-3 border-b border-border bg-background/80 backdrop-blur-sm px-4 py-3 lg:hidden">
+        <div className="sticky top-0 z-30 flex items-center gap-3 border-b border-border bg-background/80 px-4 py-3 lg:hidden">
           <Button variant="ghost" size="icon" onClick={toggleSidebar} aria-label="Abrir menu">
             <Menu className="h-5 w-5" />
           </Button>

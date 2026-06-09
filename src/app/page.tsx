@@ -52,7 +52,7 @@ export default function Home() {
       <main className="flex flex-1 flex-col items-center justify-center px-6">
         <div className="max-w-lg text-center space-y-8">
           <div className="space-y-4">
-            <h1 className="font-display text-4xl font-bold tracking-tight text-foreground">
+            <h1 className="font-display text-4xl font-bold tracking-tight text-balance text-foreground">
               Currículos inteligentes para{' '}
               <span className="text-accent">cada oportunidade</span>
             </h1>
@@ -63,7 +63,7 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="flex flex-col items-center gap-4">
+          <div className="flex flex-col items-center gap-4 w-full max-w-[280px] mx-auto">
             <GoogleLoginButton />
           </div>
 
@@ -73,8 +73,8 @@ export default function Home() {
               { icon: '🎯', title: 'Match com a vaga', desc: 'ATS + IA do Google' },
               { icon: '✉️', title: 'Envio por email', desc: 'Gmail integrado' },
             ].map((item) => (
-              <div key={item.title} className="space-y-2">
-                <div className="text-2xl">{item.icon}</div>
+              <div key={item.title} className="space-y-2 rounded-lg border border-border bg-card p-4">
+                <div className="text-2xl" aria-hidden="true">{item.icon}</div>
                 <h3 className="font-display font-semibold text-sm text-foreground">{item.title}</h3>
                 <p className="text-xs text-muted-foreground">{item.desc}</p>
               </div>

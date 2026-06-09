@@ -118,7 +118,7 @@ const DialogContent = React.forwardRef<HTMLDivElement, DialogContentProps>(
     return createPortal(
       <div className="fixed inset-0 z-50 flex items-center justify-center">
         <div
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm"
+          className="fixed inset-0 bg-black/50"
           onClick={() => onOpenChange(false)}
           aria-hidden="true"
         />
@@ -137,7 +137,7 @@ const DialogContent = React.forwardRef<HTMLDivElement, DialogContentProps>(
           {showClose && (
             <button
               onClick={() => onOpenChange(false)}
-              className="absolute right-4 top-4 rounded-lg p-1 text-muted-foreground hover:text-foreground transition-colors"
+              className="absolute right-4 top-4 rounded-lg p-2.5 text-muted-foreground hover:text-foreground transition-colors"
               aria-label="Fechar"
             >
               <X className="h-4 w-4" />

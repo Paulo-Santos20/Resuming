@@ -31,3 +31,10 @@ export function validateBody<T>(schema: z.ZodSchema<T>, body: unknown): T | Next
 }
 
 export const PYTHON_SERVICE_URL = process.env.CLOUD_RUN_URL || 'http://localhost:8000'
+
+export function forwardAuth(request: NextRequest): Record<string, string> {
+  const auth = request.headers.get('authorization')
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+  if (auth) headers['authorization'] = auth
+  return headers
+}
