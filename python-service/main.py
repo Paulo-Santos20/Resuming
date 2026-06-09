@@ -355,7 +355,25 @@ Retorne APENAS o JSON, sem formatação markdown."""
     except HTTPException:
         raise
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/debug/gemini")
+async def debug_gemini():
+    try:
+        client = get_genai_client()
+        response = call_gemini_with_retry(
+            client,
+            model="gemini-flash-latest",
+            contents=["Responda apenas: OK"],
+        )
+        return {"status": "ok", "text": response.text}
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return {"status": "error", "error": str(e)}
 
 
 @app.post("/edit-resume")
