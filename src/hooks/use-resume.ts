@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import {
   collection,
   query,
@@ -12,6 +12,7 @@ import {
   deleteDoc,
   getDoc,
   limit,
+  onSnapshot,
 } from 'firebase/firestore'
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage'
 import { getDbInstance, getStorageInstance, getAuthInstance } from '@/lib/firebase'
@@ -30,8 +31,6 @@ export function useResume(userId: string | undefined) {
   const fetchResumes = useCallback(async () => {
     if (!userId) return
     const dbInstance = getDbInstance()
-    setError(null)
-    setLoading(true)
     try {
       const q = query(
         collection(dbInstance, 'users', userId, 'resumes'),
@@ -43,9 +42,32 @@ export function useResume(userId: string | undefined) {
       resumesRef.current = data
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Erro ao carregar currículos')
-    } finally {
-      setLoading(false)
     }
+  }, [userId])
+
+  useEffect(() => {
+    if (!userId) return
+    setLoading(true)
+    const dbInstance = getDbInstance()
+    const q = query(
+      collection(dbInstance, 'users', userId, 'resumes'),
+      orderBy('createdAt', 'desc')
+    )
+    const unsubscribe = onSnapshot(
+      q,
+      (snap) => {
+        const data = snap.docs.map((d) => ({ id: d.id, ...d.data() } as Resume))
+        setResumes(data)
+        resumesRef.current = data
+        setLoading(false)
+      },
+      (err) => {
+        console.error('[onSnapshot] error:', err)
+        setError(err.message)
+        setLoading(false)
+      },
+    )
+    return unsubscribe
   }, [userId])
 
   const uploadResume = useCallback(

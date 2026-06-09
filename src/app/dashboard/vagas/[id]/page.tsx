@@ -7,6 +7,7 @@ import { getDbInstance } from '@/lib/firebase'
 import { useAuth } from '@/hooks/use-auth'
 import { useResume } from '@/hooks/use-resume'
 import { useJobs } from '@/hooks/use-jobs'
+import { useProcessing } from '@/contexts/processing-context'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -24,6 +25,7 @@ export default function VagaDetalhePage() {
   const router = useRouter()
   const { resumes, loading: resumeLoading, fetchResumes, editResume } = useResume(user?.uid)
   const { markAsSent } = useJobs(user?.uid)
+  const processing = useProcessing()
   const [job, setJob] = useState<JobDescription | null>(null)
   const [selectedResumeId, setSelectedResumeId] = useState<string>('')
   const [versionAts, setVersionAts] = useState<string | null>(null)
@@ -76,6 +78,8 @@ export default function VagaDetalhePage() {
     if (!selectedResumeId || !job) return
     setGenerating(true)
     setChosenVersion(null)
+    const versionId = `version-${selectedResumeId}-${job.id}-${Date.now()}`
+    processing.register(versionId, 'Gerando 2 versões…')
     try {
       const [atsHtml, originalHtml] = await Promise.all([
         editResume(selectedResumeId, job.id, job.description, 'ats', job.title),
@@ -86,14 +90,16 @@ export default function VagaDetalhePage() {
       sessionStorage.setItem(`edited-${job.id}-ats`, atsHtml)
       sessionStorage.setItem(`edited-${job.id}-original`, originalHtml)
       sessionStorage.removeItem(`chosen-${job.id}`)
+      processing.complete(versionId, `${job.title}`, 2)
       toastSuccess('Versões geradas', 'Escolha a que prefere abaixo')
     } catch (err) {
       console.error('Generate versions error:', err)
+      processing.fail(versionId, 'Erro ao gerar versões')
       toastError('Erro ao gerar versões')
     } finally {
       setGenerating(false)
     }
-  }, [selectedResumeId, job, editResume])
+  }, [selectedResumeId, job, editResume, processing])
 
   const handleChooseVersion = async (type: 'ats' | 'original') => {
     if (!job) return
