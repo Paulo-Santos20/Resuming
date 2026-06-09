@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { verifyAuth, validateBody, PYTHON_SERVICE_URL } from '@/lib/api-helpers'
+import { verifyAuth, validateBody, PYTHON_SERVICE_URL, forwardAuth } from '@/lib/api-helpers'
 import { ParseResumeApiSchema } from '@/lib/validations'
 
 export async function POST(request: NextRequest) {
@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
     try {
       response = await fetch(`${PYTHON_SERVICE_URL}/parse-resume`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: forwardAuth(request),
         body: JSON.stringify({ fileUrl: parsed.fileUrl, uid: uidOrResponse }),
         signal: AbortSignal.timeout(60000),
       })

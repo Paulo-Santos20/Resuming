@@ -43,32 +43,32 @@ export function JobCard({ job }: JobCardProps) {
         <p className="text-sm text-muted-foreground line-clamp-3 mb-4">
           {truncate(job.description, 200)}
         </p>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" asChild>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="outline" asChild>
             <Link href={`/dashboard/vagas/${job.id}`}>
-              <Eye className="h-3.5 w-3.5 mr-1" />
+              <Eye className="h-4 w-4 mr-1.5" />
               Detalhes
             </Link>
           </Button>
           {job.status !== 'sent' && (
             <>
-              <Button variant="outline" size="sm" asChild>
+              <Button variant="outline" asChild>
                 <Link href={`/dashboard/vagas/${job.id}/editar`}>
-                  <Edit3 className="h-3.5 w-3.5 mr-1" />
+                  <Edit3 className="h-4 w-4 mr-1.5" />
                   Editar
                 </Link>
               </Button>
-              <Button variant="accent" size="sm" asChild>
+              <Button variant="accent" asChild>
                 <Link href={`/dashboard/vagas/${job.id}/email`}>
-                  <Send className="h-3.5 w-3.5 mr-1" />
+                  <Send className="h-4 w-4 mr-1.5" />
                   Enviar
                 </Link>
               </Button>
             </>
           )}
-          <Button variant="ghost" size="sm" asChild className="ml-auto" aria-label="Ver detalhes">
+          <Button variant="ghost" size="icon" asChild className="ml-auto" aria-label="Ver detalhes">
             <Link href={`/dashboard/vagas/${job.id}`}>
-              <ArrowRight className="h-3.5 w-3.5" />
+              <ArrowRight className="h-4 w-4" />
             </Link>
           </Button>
         </div>

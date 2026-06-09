@@ -1,10 +1,11 @@
 'use client'
 
-import { useEffect, useCallback, useRef, useState } from 'react'
+import { useCallback, useRef, useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import {
   FileText,
   Briefcase,
@@ -33,38 +34,12 @@ interface UserAvatarProps {
 }
 
 function UserAvatar({ photoURL, userName, size = 'md' }: UserAvatarProps) {
-  const sizeMap = { sm: 28, md: 36, lg: 40 }
-  const px = sizeMap[size]
-  const [imgError, setImgError] = useState(false)
-  const initial = userName?.charAt(0)?.toUpperCase() || '?'
-
-  useEffect(() => {
-    setImgError(false)
-  }, [photoURL])
-
-  if (photoURL && !imgError) {
-    return (
-      <div
-        className="shrink-0 rounded-full overflow-hidden"
-        style={{ width: px, height: px, minWidth: px, minHeight: px }}
-      >
-        <img
-          src={photoURL}
-          alt={userName}
-          className="h-full w-full object-cover"
-          onError={() => setImgError(true)}
-        />
-      </div>
-    )
-  }
-
+  const px = { sm: 28, md: 36, lg: 40 }[size]
   return (
-    <div
-      className="flex shrink-0 items-center justify-center rounded-full bg-accent text-accent-foreground font-bold shadow-sm"
-      style={{ width: px, height: px, minWidth: px, minHeight: px }}
-    >
-      <span className={cn(size === 'sm' ? 'text-xs' : 'text-sm')}>{initial}</span>
-    </div>
+    <Avatar className="shrink-0" style={{ width: px, height: px }}>
+      <AvatarImage src={photoURL || undefined} alt={userName} />
+      <AvatarFallback>{userName?.charAt(0)?.toUpperCase() || '?'}</AvatarFallback>
+    </Avatar>
   )
 }
 
@@ -73,39 +48,41 @@ interface SidebarProps {
   userName: string
   userEmail: string
   photoURL?: string | null
-  mobile?: boolean
-  onClose?: () => void
+  mobileOpen?: boolean
+  onMobileClose?: () => void
 }
 
-export function Sidebar({ onLogout, userName, userEmail, photoURL, mobile, onClose }: SidebarProps) {
+export function Sidebar({ onLogout, userName, userEmail, photoURL, mobileOpen, onMobileClose }: SidebarProps) {
   const pathname = usePathname()
   const { sidebarOpen, toggleSidebar, toggleDarkMode, darkMode } = useUIStore()
-  const collapsed = !sidebarOpen && !mobile
+  const collapsed = !sidebarOpen
   const sidebarRef = useRef<HTMLElement>(null)
   const [hoveredItem, setHoveredItem] = useState<string | null>(null)
+  const mounted = useRef(false)
+  useEffect(() => { mounted.current = true }, [])
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    if (e.key === 'Escape' && mobile && onClose) {
-      onClose()
+    if (e.key === 'Escape' && mobileOpen && onMobileClose) {
+      onMobileClose()
     }
-  }, [mobile, onClose])
+  }, [mobileOpen, onMobileClose])
 
   useEffect(() => {
-    if (!mobile) return
+    if (!mobileOpen) return
     const el = sidebarRef.current
     if (!el) return
     el.focus()
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [mobile, handleKeyDown])
+  }, [mobileOpen, handleKeyDown])
 
   const isActive = (href: string) => {
     if (href === '/dashboard') return pathname === '/dashboard'
     return pathname === href || pathname.startsWith(href + '/')
   }
 
-  const sidebarContent = (variant: 'desktop' | 'mobile') => {
-    const isMobile = variant === 'mobile'
+  const sidebarContent = () => {
+    const isMobile = !!mobileOpen
     return (
       <div className="flex h-full flex-col">
         {/* Header */}
@@ -117,11 +94,13 @@ export function Sidebar({ onLogout, userName, userEmail, photoURL, mobile, onClo
             <div className="flex items-center gap-px">
               <button
                 onClick={toggleSidebar}
-                className="flex items-center justify-center rounded-xl bg-primary text-primary-foreground font-display font-bold h-7 w-7 text-xs cursor-pointer hover:opacity-90 transition-opacity"
+                className="flex items-center justify-center min-h-[44px] min-w-[44px] cursor-pointer hover:opacity-90 transition-opacity"
                 title="Expandir menu"
                 aria-label="Expandir menu"
               >
-                R
+                <span className="flex items-center justify-center rounded-xl bg-primary text-primary-foreground font-display font-bold h-7 w-7 text-xs">
+                  R
+                </span>
               </button>
               <button
                 onClick={toggleSidebar}
@@ -162,7 +141,7 @@ export function Sidebar({ onLogout, userName, userEmail, photoURL, mobile, onClo
               <div key={item.href} className="relative group">
                 <Link
                   href={item.href}
-                  onClick={() => { isMobile && onClose?.() }}
+                  onClick={() => { isMobile && onMobileClose?.() }}
                   onMouseEnter={() => setHoveredItem(item.href)}
                   onMouseLeave={() => setHoveredItem(null)}
                   className={cn(
@@ -230,10 +209,10 @@ export function Sidebar({ onLogout, userName, userEmail, photoURL, mobile, onClo
             'p-3',
             collapsed && 'flex flex-col items-center gap-1'
           )}>
-            <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground h-8 w-8" onClick={toggleDarkMode} title={darkMode ? 'Modo claro' : 'Modo escuro'} aria-label={darkMode ? 'Modo claro' : 'Modo escuro'}>
+            <Button variant="ghost" size="icon" onClick={toggleDarkMode} title={darkMode ? 'Modo claro' : 'Modo escuro'} aria-label={darkMode ? 'Modo claro' : 'Modo escuro'}>
               {darkMode ? <Sun className="h-4 w-4 shrink-0" /> : <Moon className="h-4 w-4 shrink-0" />}
             </Button>
-            <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive h-8 w-8" onClick={onLogout} title="Sair" aria-label="Sair">
+            <Button variant="ghost" size="icon" onClick={onLogout} title="Sair" aria-label="Sair">
               <LogOut className="h-4 w-4 shrink-0" />
             </Button>
           </div>
@@ -245,39 +224,40 @@ export function Sidebar({ onLogout, userName, userEmail, photoURL, mobile, onClo
   return (
     <>
       {/* Desktop */}
-      {!mobile && (
-        <aside
-          ref={sidebarRef}
-          role="navigation"
-          aria-label="Menu lateral"
-          className={cn(
-            'hidden lg:flex h-full flex-col',
-            'bg-card border-r border-border',
-            'transition-all duration-300 ease-in-out',
-            sidebarOpen ? 'w-64' : 'w-16'
-          )}
-        >
-          {sidebarContent('desktop')}
-        </aside>
-      )}
+      <aside
+        ref={sidebarRef}
+        role="navigation"
+        aria-label="Menu lateral"
+        className={cn(
+          'hidden lg:flex h-full flex-col',
+          'bg-card border-r border-border',
+          'transition-all duration-300 ease-in-out',
+          sidebarOpen ? 'w-64' : 'w-16'
+        )}
+      >
+        {sidebarContent()}
+      </aside>
 
-      {/* Mobile */}
-      {mobile && (
+      {/* Mobile overlay */}
+      {mobileOpen && (
         <>
           <div
-            className="fixed inset-0 z-40"
-            onClick={onClose}
+            className="fixed inset-0 z-40 bg-black/50"
+            onClick={onMobileClose}
             aria-hidden="true"
           />
           <aside
-            ref={sidebarRef}
             role="dialog"
             aria-modal="true"
             aria-label="Menu de navegação"
             tabIndex={-1}
-            className="fixed inset-y-0 left-0 z-50 w-64 bg-card shadow-xl outline-none"
+            className={cn(
+              'fixed inset-y-0 left-0 z-50 w-64 bg-card shadow-xl outline-none',
+              'transition-transform duration-300 ease-in-out',
+              mobileOpen ? 'translate-x-0' : '-translate-x-full'
+            )}
           >
-            {sidebarContent('mobile')}
+            {sidebarContent()}
           </aside>
         </>
       )}

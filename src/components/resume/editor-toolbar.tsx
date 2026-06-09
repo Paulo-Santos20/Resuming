@@ -1,5 +1,6 @@
 'use client'
 
+import { useMemo } from 'react'
 import type { Editor } from '@tiptap/react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -26,7 +27,7 @@ interface EditorToolbarProps {
 export function EditorToolbar({ editor }: EditorToolbarProps) {
   if (!editor) return null
 
-  const groups = [
+  const groups = useMemo(() => [
     [
       { icon: Bold, action: () => editor.chain().focus().toggleBold().run(), active: editor.isActive('bold'), label: 'Negrito' },
       { icon: Italic, action: () => editor.chain().focus().toggleItalic().run(), active: editor.isActive('italic'), label: 'Itálico' },
@@ -50,7 +51,7 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
       { icon: Undo2, action: () => editor.chain().focus().undo().run(), active: false, label: 'Desfazer' },
       { icon: Redo2, action: () => editor.chain().focus().redo().run(), active: false, label: 'Refazer' },
     ],
-  ]
+  ], [editor])
 
   return (
     <div className="flex flex-wrap items-center gap-0.5 rounded-t-lg border-b bg-muted/30 p-1.5">
@@ -64,7 +65,7 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
               variant="ghost"
               size="icon"
               className={cn(
-                'h-8 w-8',
+                'min-h-[44px] min-w-[44px] h-9 w-9',
                 btn.active && 'bg-accent text-accent-foreground'
               )}
               onClick={btn.action}

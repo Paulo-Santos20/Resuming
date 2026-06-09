@@ -30,15 +30,15 @@ export default function EmailVagaPage() {
   const [generating, setGenerating] = useState(false)
   const [loading, setLoading] = useState(true)
 
+  const [chosenType, setChosenType] = useState('ats')
+  const [resumeHtml, setResumeHtml] = useState('')
+
+  useEffect(() => {
+    setChosenType(sessionStorage.getItem(`chosen-${id}`) || 'ats')
+    setResumeHtml(sessionStorage.getItem(`edited-${id}`) || '')
+  }, [id])
+
   useEffect(() => { document.title = 'Enviar E-mail — Resume React' }, [])
-
-  const chosenType = typeof window !== 'undefined'
-    ? (sessionStorage.getItem(`chosen-${id}`) || 'ats')
-    : 'ats'
-
-  const resumeHtml = typeof window !== 'undefined'
-    ? (sessionStorage.getItem(`edited-${id}`) || '')
-    : ''
 
   useEffect(() => {
     if (!user?.uid || !id) return
@@ -153,7 +153,7 @@ export default function EmailVagaPage() {
 
       {/* Google token warning */}
       {!googleAccessToken && (
-        <div className="flex items-center gap-3 rounded-lg border border-warning-border bg-warning-bg px-4 py-3 text-sm">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 rounded-lg border border-warning-border bg-warning-bg px-4 py-3 text-sm">
           <span className="text-warning">
             Conexão com o Gmail expirou. Reconecte sua conta para enviar emails.
           </span>
@@ -161,7 +161,7 @@ export default function EmailVagaPage() {
             variant="outline"
             size="sm"
             onClick={refreshGoogleToken}
-            className="ml-auto shrink-0"
+            className="sm:ml-auto shrink-0"
           >
             <RefreshCw className="h-3 w-3 mr-1" />
             Reconectar Gmail

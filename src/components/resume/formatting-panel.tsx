@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useCallback, memo } from 'react'
 import { TemplateSelector } from './template-selector'
 import { FONT_OPTIONS } from '@/types/editor'
 import type { ResumeFormatting, TemplateStyle } from '@/types/editor'
@@ -73,12 +73,19 @@ function RangeInput({
   )
 }
 
-export function FormattingPanel({
+export const FormattingPanel = memo(function FormattingPanel({
   formatting,
   onChange,
   templateStyle,
   onTemplateChange,
 }: FormattingPanelProps) {
+  const handleFontChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+    onChange({ fontFamily: e.target.value })
+  }, [onChange])
+
+  const handleColorPickerChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    onChange({ accentColor: e.target.value })
+  }, [onChange])
   useEffect(() => {
     const id = 'rm-template-css'
     const existing = document.getElementById(id)
@@ -104,7 +111,7 @@ export function FormattingPanel({
         <p className="text-sm font-medium">Fonte</p>
         <select
           value={formatting.fontFamily}
-          onChange={(e) => onChange({ fontFamily: e.target.value })}
+          onChange={handleFontChange}
           className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm"
         >
           {FONT_OPTIONS.map((f) => (
@@ -161,22 +168,23 @@ export function FormattingPanel({
               key={color}
               type="button"
               onClick={() => onChange({ accentColor: color })}
-              className="h-6 w-6 rounded-full border border-border transition-transform hover:scale-110"
-              style={{ backgroundColor: color }}
+              className="flex items-center justify-center min-h-[44px] min-w-[44px] rounded-full border border-border transition-transform hover:scale-110"
               aria-label={`Cor ${color}`}
-            />
+            >
+              <span className="h-6 w-6 rounded-full" style={{ backgroundColor: color }} />
+            </button>
           ))}
         </div>
         <div className="flex items-center gap-2 pt-1">
           <input
             type="color"
             value={formatting.accentColor}
-            onChange={(e) => onChange({ accentColor: e.target.value })}
-            className="h-7 w-10 cursor-pointer rounded border border-border"
+            onChange={handleColorPickerChange}
+            className="min-h-[44px] w-14 cursor-pointer rounded border border-border"
           />
           <span className="text-xs text-muted-foreground font-mono">{formatting.accentColor}</span>
         </div>
       </div>
     </div>
   )
-}
+})

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { verifyAuth, validateBody, PYTHON_SERVICE_URL } from '@/lib/api-helpers'
+import { verifyAuth, validateBody, PYTHON_SERVICE_URL, forwardAuth } from '@/lib/api-helpers'
 import { sanitizeHtml } from '@/lib/sanitize'
 import { GeneratePdfApiSchema } from '@/lib/validations'
 
@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
 
     const response = await fetch(`${PYTHON_SERVICE_URL}/generate-pdf`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: forwardAuth(request),
       body: JSON.stringify({ htmlContent: sanitizeHtml(parsed.htmlContent) }),
     })
 

@@ -68,7 +68,7 @@ export function ResumeUpload({ onUpload, loading }: ResumeUploadProps) {
             <div className="rounded-full bg-brand/10 p-4 mb-4">
               <File className="h-8 w-8 text-brand" />
             </div>
-            <p className="font-medium">Arraste seu currículo PDF aqui</p>
+            <p className="font-medium">Toque para selecionar ou arraste o PDF aqui</p>
             <p className="text-sm text-muted-foreground mt-1">
               ou clique para selecionar (PDF, máximo 10MB)
             </p>

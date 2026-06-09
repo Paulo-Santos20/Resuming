@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { verifyAuth, validateBody, PYTHON_SERVICE_URL } from '@/lib/api-helpers'
+import { verifyAuth, validateBody, PYTHON_SERVICE_URL, forwardAuth } from '@/lib/api-helpers'
 import { OcrJobApiSchema } from '@/lib/validations'
 
 export async function POST(request: NextRequest) {
@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
 
     const response = await fetch(`${PYTHON_SERVICE_URL}/ocr-job`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: forwardAuth(request),
       body: JSON.stringify(parsed),
     })
 

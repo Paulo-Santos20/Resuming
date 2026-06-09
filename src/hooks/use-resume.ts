@@ -13,6 +13,7 @@ import {
   getDoc,
   limit,
   onSnapshot,
+  writeBatch,
 } from 'firebase/firestore'
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage'
 import { getDbInstance, getStorageInstance, getAuthInstance } from '@/lib/firebase'
@@ -34,7 +35,8 @@ export function useResume(userId: string | undefined) {
     try {
       const q = query(
         collection(dbInstance, 'users', userId, 'resumes'),
-        orderBy('createdAt', 'desc')
+        orderBy('createdAt', 'desc'),
+        limit(10)
       )
       const snap = await getDocs(q)
       const data = snap.docs.map((d) => ({ id: d.id, ...d.data() } as Resume))
@@ -51,7 +53,8 @@ export function useResume(userId: string | undefined) {
     const dbInstance = getDbInstance()
     const q = query(
       collection(dbInstance, 'users', userId, 'resumes'),
-      orderBy('createdAt', 'desc')
+      orderBy('createdAt', 'desc'),
+      limit(10)
     )
     const unsubscribe = onSnapshot(
       q,
@@ -99,8 +102,6 @@ export function useResume(userId: string | undefined) {
 
         processing.register(docRef.id, file.name)
         processInBackground(docRef.id, file.name, downloadURL, idToken, userId, processing)
-
-        await fetchResumes()
         return docRef.id
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : 'Erro ao enviar currículo'
@@ -121,7 +122,8 @@ export function useResume(userId: string | undefined) {
       try {
         const q = query(
           collection(dbInstance, 'users', userId, 'resumes', resumeId, 'versions'),
-          orderBy('createdAt', 'desc')
+          orderBy('createdAt', 'desc'),
+          limit(1)
         )
         const snap = await getDocs(q)
         setVersions(snap.docs.map((d) => ({ id: d.id, ...d.data() } as ResumeVersion)))
@@ -197,9 +199,8 @@ export function useResume(userId: string | undefined) {
     const storageInstance = getStorageInstance()
     setError(null)
     try {
-      const snap = await getDoc(doc(dbInstance, 'users', userId, 'resumes', resumeId))
-      if (!snap.exists()) throw new Error('Currículo não encontrado')
-      const resumeData = snap.data() as Resume
+      const resumeData = resumesRef.current.find((r) => r.id === resumeId)
+      if (!resumeData) throw new Error('Currículo não encontrado')
 
       if (resumeData.storagePath) {
         const storageRef = ref(storageInstance, resumeData.storagePath)
@@ -209,13 +210,13 @@ export function useResume(userId: string | undefined) {
       const versionsSnap = await getDocs(
         collection(dbInstance, 'users', userId, 'resumes', resumeId, 'versions')
       )
-      await Promise.all(
-        versionsSnap.docs.map((v) =>
-          deleteDoc(doc(dbInstance, 'users', userId, 'resumes', resumeId, 'versions', v.id))
-        )
-      )
+      const batch = writeBatch(dbInstance)
+      versionsSnap.docs.forEach((v) => {
+        batch.delete(doc(dbInstance, 'users', userId, 'resumes', resumeId, 'versions', v.id))
+      })
+      batch.delete(doc(dbInstance, 'users', userId, 'resumes', resumeId))
+      await batch.commit()
 
-      await deleteDoc(doc(dbInstance, 'users', userId, 'resumes', resumeId))
       setResumes((prev) => prev.filter((r) => r.id !== resumeId))
       resumesRef.current = resumesRef.current.filter((r) => r.id !== resumeId)
       toastSuccess('Currículo excluído')
@@ -261,7 +262,7 @@ async function processInBackground(
 
       if (response.ok) {
         const { data }: { data: ResumeData } = await response.json()
-        console.log('[processInBackground] Gemini data:', JSON.stringify(data, null, 2))
+        if (process.env.NODE_ENV === 'development') console.log('[processInBackground] Gemini data:', JSON.stringify(data, null, 2))
         ctx.updateProgress(resumeId, 90)
 
         await updateDoc(doc(db, 'users', uid, 'resumes', resumeId), {

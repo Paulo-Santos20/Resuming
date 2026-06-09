@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next'
+import Script from 'next/script'
 import { Toaster } from 'sonner'
 import { Providers } from '@/components/providers'
 import './globals.css'
@@ -44,8 +45,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="preconnect" href="https://api.fontshare.com" crossOrigin="anonymous" />
         <link rel="preconnect" href="https://firebasestorage.googleapis.com" crossOrigin="anonymous" />
         <link rel="apple-touch-icon" href="/favicon.svg" />
-        <link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&f[]=dm-sans@400,500&display=swap" />
-        <script dangerouslySetInnerHTML={{ __html: DARK_MODE_SCRIPT }} />
+        <link rel="preload" href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&f[]=dm-sans@400,500&display=swap" as="style" />
+        <link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&f[]=dm-sans@400,500&display=swap" media="print" />
+        <Script id="font-swap" strategy="afterInteractive">
+          {`document.querySelector('link[href*="fontshare"]').media='all'`}
+        </Script>
+        <noscript><link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&f[]=dm-sans@400,500&display=swap" /></noscript>
+        <Script id="dark-mode" strategy="beforeInteractive">
+          {DARK_MODE_SCRIPT}
+        </Script>
       </head>
       <body className="antialiased">
         <Providers>

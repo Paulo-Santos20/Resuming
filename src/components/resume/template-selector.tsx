@@ -27,7 +27,7 @@ export function TemplateSelector({ value, onChange }: TemplateSelectorProps) {
             type="button"
             onClick={() => onChange(key)}
             className={cn(
-              'flex flex-col items-center gap-1.5 rounded-lg border p-2.5 text-xs transition-colors',
+              'flex flex-col items-center gap-1.5 rounded-lg border p-2.5 text-xs min-h-[44px] transition-colors',
               value === key
                 ? 'border-primary bg-primary/5 text-primary ring-1 ring-primary'
                 : 'border-border text-muted-foreground hover:border-primary/50'

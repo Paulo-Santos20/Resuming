@@ -6,7 +6,6 @@ const ALLOWED_TAGS = [
   'ul', 'ol', 'li', 'span', 'strong', 'em', 'u', 'br', 'hr',
   'table', 'thead', 'tbody', 'tr', 'th', 'td',
   'section', 'header', 'footer', 'main', 'article',
-  'style', 'img',
 ]
 
 const ALLOWED_ATTR = [

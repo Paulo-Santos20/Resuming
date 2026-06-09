@@ -1,10 +1,15 @@
 import os
 import json
 import io
-import urllib.request
+import random
+import re
+import traceback
+import asyncio
+import http.client
 from urllib.parse import urlparse
 from typing import Optional
-from fastapi import FastAPI, HTTPException, Header
+from fastapi import FastAPI, HTTPException, Header, Depends
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 from google import genai
 from google.genai import types
@@ -51,6 +56,18 @@ def verify_firebase_token(authorization: Optional[str]) -> Optional[str]:
     except Exception:
         return None
 
+security = HTTPBearer(auto_error=False)
+
+async def require_auth(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    if not _firebase_initialized:
+        init_firebase()
+    if not _firebase_initialized:
+        raise HTTPException(status_code=503, detail="Serviço de autenticação indisponível")
+    uid = verify_firebase_token(credentials.credentials if credentials else None)
+    if uid is None:
+        raise HTTPException(status_code=401, detail="Não autorizado")
+    return uid
+
 _ocr_instance = None
 
 def get_ocr():
@@ -70,20 +87,22 @@ def ocr_file(file_bytes: bytes) -> str:
     if is_pdf:
         import fitz
         doc = fitz.open(stream=file_bytes, filetype="pdf")
-        text_parts = []
-        for page in doc:
-            text = page.get_text().strip()
-            if text:
-                text_parts.append(text)
-            else:
-                pix = page.get_pixmap(dpi=300)
-                img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
-                img_np = np.array(img)
-                ocr = get_ocr()
-                result = ocr.ocr(img_np, cls=True)
-                if result and result[0]:
-                    text_parts.append("\n".join(line[1][0] for line in result[0]))
-        doc.close()
+        try:
+            text_parts = []
+            for page in doc:
+                text = page.get_text().strip()
+                if text:
+                    text_parts.append(text)
+                else:
+                    pix = page.get_pixmap(dpi=200)
+                    img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+                    img_np = np.array(img)
+                    ocr = get_ocr()
+                    result = ocr.ocr(img_np, cls=True)
+                    if result and len(result) > 0 and result[0] and len(result[0]) > 0:
+                        text_parts.append("\n".join(line[1][0] for line in result[0]))
+        finally:
+            doc.close()
         return "\n\n".join(text_parts)
     else:
         img = Image.open(io.BytesIO(file_bytes))
@@ -91,7 +110,7 @@ def ocr_file(file_bytes: bytes) -> str:
         img_np = np.array(img.convert("RGB"))
         ocr = get_ocr()
         result = ocr.ocr(img_np, cls=True)
-        if result and result[0]:
+        if result and len(result) > 0 and result[0] and len(result[0]) > 0:
             return "\n".join(line[1][0] for line in result[0])
         return ""
 
@@ -117,7 +136,7 @@ def get_genai_client(key: Optional[str] = None):
             api_key = response.payload.data.decode("utf-8")
         except Exception:
             pass
-    return genai.Client(api_key=api_key)
+    return genai.Client(api_key=api_key, http_options={"timeout": 60000})
 
 
 def _is_retryable_error(e: Exception) -> bool:
@@ -149,7 +168,7 @@ def call_gemini_with_retry(client, model, contents=None, config=None):
         except Exception as e:
             last_error = e
             if attempt < 2 and _is_retryable_error(e):
-                delay = 2 ** (attempt + 1)
+                delay = (2 ** (attempt + 1)) + random.uniform(0, 1)
                 print(f"    [retry] Gemini falhou (tentativa {attempt + 1}/3), tentando novamente em {delay}s: {e}")
                 time.sleep(delay)
             else:
@@ -173,6 +192,13 @@ def call_gemini_with_key_rotation(keys=None, model=GEMINI_MODEL, contents=None, 
             raise
 
 
+async def call_gemini_async(contents=None, config=None):
+    loop = asyncio.get_event_loop()
+    return await loop.run_in_executor(
+        None, lambda: call_gemini_with_key_rotation(contents=contents, config=config)
+    )
+
+
 class ParseResumeRequest(BaseModel):
     fileUrl: str
     uid: str
@@ -188,6 +214,14 @@ class EditResumeRequest(BaseModel):
 class OcrJobRequest(BaseModel):
     photoUrl: str
 
+
+ALLOWED_FONTS = {"Arial", "Calibri", "Times New Roman", "Georgia", "Helvetica", "Verdana"}
+
+def validate_generate_pdf_request(req: "GeneratePdfRequest"):
+    if req.fontFamily and req.fontFamily not in ALLOWED_FONTS:
+        req.fontFamily = "Arial"
+    if req.accentColor and not re.match(r'^#[0-9a-fA-F]{6}$', req.accentColor):
+        req.accentColor = "#1a3c5e"
 
 class GeneratePdfRequest(BaseModel):
     htmlContent: str
@@ -218,13 +252,24 @@ Sua função é adaptar currículos para vagas específicas seguindo rigorosamen
 6. Preserve a cronologia exata das experiências - não reorganize datas
 7. Formate a saída como HTML bem estruturado para conversão em PDF
 8. IDIOMA: Responda EM PORTUGUÊS (pt-BR)
-9. NUNCA use primeira pessoa do singular ("eu fiz", "minha experiência"). Comece as descrições diretamente com verbo de ação no infinitivo ou substantivo: "Gestão de equipe…", "Desenvolvimento de sistema…" em vez de "Eu gerenciei…", "Minha experiência inclui…""""
+9. NUNCA use primeira pessoa do singular ("eu fiz", "minha experiência"). Comece as descrições diretamente com verbo de ação no infinitivo ou substantivo: "Gestão de equipe…", "Desenvolvimento de sistema…" em vez de "Eu gerenciei…", "Minha experiência inclui…\""""
 
 EMAIL_SYSTEM_PROMPT = """Você é um assistente de comunicação profissional.
 Gere um email em HTML bem formatado e humanizado para envio de currículo.
 O email deve ser educado, profissional e direto ao ponto.
 IDIOMA: Responda EM PORTUGUÊS (pt-BR).
 Retorne um JSON com dois campos: subject (assunto do email) e body (HTML do corpo)."""
+
+
+def extract_html_from_response(text: str) -> str:
+    text = text.strip()
+    if text.startswith("```"):
+        idx = text.find("\n")
+        if idx != -1:
+            text = text[idx:].strip()
+    if text.endswith("```"):
+        text = text[:-3].strip()
+    return text.strip()
 
 
 def extract_json_from_response(text: str) -> dict:
@@ -293,21 +338,37 @@ def validate_url_scheme(url: str):
             status_code=400, detail="Apenas URLs HTTPS são permitidas"
         )
 
+ALLOWED_DOMAINS = ["firebasestorage.googleapis.com", "lh3.googleusercontent.com"]
+
+def validate_url_domain(url: str):
+    parsed = urlparse(url)
+    if parsed.hostname not in ALLOWED_DOMAINS:
+        raise HTTPException(
+            status_code=400, detail=f"Domínio não permitido: {parsed.hostname}"
+        )
+
 def download_file(url: str) -> bytes:
     validate_url_scheme(url)
+    validate_url_domain(url)
     try:
-        with urllib.request.urlopen(url, timeout=30) as response:
-            content = response.read(MAX_DOWNLOAD_BYTES + 1)
-            if len(content) > MAX_DOWNLOAD_BYTES:
-                raise HTTPException(
-                    status_code=413,
-                    detail="Arquivo excede o limite de 50MB",
-                )
-            return content
+        import http.client
+        parsed = urlparse(url)
+        conn = http.client.HTTPSConnection(parsed.hostname, timeout=30)
+        conn.request("GET", parsed.path + ("?" + parsed.query if parsed.query else ""))
+        response = conn.getresponse()
+        if response.status >= 400:
+            raise HTTPException(status_code=502, detail="Erro ao baixar arquivo")
+        content = response.read(MAX_DOWNLOAD_BYTES + 1)
+        if len(content) > MAX_DOWNLOAD_BYTES:
+            raise HTTPException(
+                status_code=413,
+                detail="Arquivo excede o limite de 50MB",
+            )
+        return content
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=502, detail=f"Erro ao baixar arquivo: {str(e)}")
+        raise HTTPException(status_code=502, detail="Erro ao baixar arquivo")
 
 def validate_pdf_magic(data: bytes):
     magic, length = ALLOWED_MAGIC_BYTES["pdf"]
@@ -330,7 +391,7 @@ async def health():
 
 
 @app.post("/parse-resume")
-async def parse_resume(req: ParseResumeRequest):
+async def parse_resume(req: ParseResumeRequest, uid: str = Depends(require_auth)):
     try:
         file_bytes = download_file(req.fileUrl)
         extracted_text = ocr_file(file_bytes)
@@ -341,8 +402,7 @@ async def parse_resume(req: ParseResumeRequest):
                 detail="Não foi possível extrair texto do arquivo.",
             )
 
-        print(f"[parse-resume] extracted_text ({len(extracted_text)} chars):")
-        print(extracted_text[:2000])
+        print(f"[parse-resume] extracted_text ({len(extracted_text)} chars)")
 
         prompt = f"""Você é um especialista em extração de dados de currículos.
 O texto abaixo foi extraído via OCR (reconhecimento óptico de caracteres).
@@ -371,12 +431,11 @@ Texto do currículo:
 
 Retorne APENAS o JSON, sem formatação markdown."""
 
-        response = call_gemini_with_key_rotation(
+        response = await call_gemini_async(
             contents=[prompt],
         )
 
-        print(f"[parse-resume] Gemini response ({len(response.text)} chars):")
-        print(response.text[:2000])
+        print(f"[parse-resume] Gemini response ({len(response.text)} chars)")
 
         data = extract_json_from_response(response.text)
         data = normalizar_resume_data(data)
@@ -384,26 +443,26 @@ Retorne APENAS o JSON, sem formatação markdown."""
     except HTTPException:
         raise
     except Exception as e:
-        import traceback
         traceback.print_exc()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Erro interno ao processar currículo")
 
 
 @app.get("/debug/gemini")
 async def debug_gemini():
+    if os.environ.get("DEBUG_MODE") != "true":
+        raise HTTPException(status_code=404, detail="Not found")
     try:
-        response = call_gemini_with_key_rotation(
+        response = await call_gemini_async(
             contents=["Responda apenas: OK"],
         )
         return {"status": "ok", "text": response.text}
     except Exception as e:
-        import traceback
         traceback.print_exc()
         return {"status": "error", "error": str(e)}
 
 
 @app.post("/edit-resume")
-async def edit_resume(req: EditResumeRequest):
+async def edit_resume(req: EditResumeRequest, uid: str = Depends(require_auth)):
     try:
         resume_str = json.dumps(req.resumeData, ensure_ascii=False, indent=2)
         prompt = f"""Com base nos dados estruturados do currículo abaixo e na descrição da vaga,
@@ -427,20 +486,20 @@ Formato HTML esperado:
 - NUNCA use primeira pessoa ("eu fiz", "minha experiência"). Escreva de forma impessoal: "Gestão de equipe…", "Desenvolvimento de…" em vez de "Eu gerenciei…"
 - Retorne APENAS o HTML, sem formatação markdown"""
 
-        response = call_gemini_with_key_rotation(
+        response = await call_gemini_async(
             config=types.GenerateContentConfig(
                 system_instruction=RESUME_SYSTEM_PROMPT,
             ),
             contents=[prompt],
         )
 
-        return {"success": True, "html": response.text}
+        return {"success": True, "html": extract_html_from_response(response.text)}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Erro interno ao editar currículo")
 
 
 @app.post("/ocr-job")
-async def ocr_job(req: OcrJobRequest):
+async def ocr_job(req: OcrJobRequest, uid: str = Depends(require_auth)):
     try:
         file_bytes = download_file(req.photoUrl)
         full_text = ocr_file(file_bytes)
@@ -460,19 +519,20 @@ Texto extraído:
 
 Retorne APENAS o JSON, sem formatação markdown."""
 
-        response = call_gemini_with_key_rotation(
+        response = await call_gemini_async(
             contents=[prompt],
         )
 
         data = extract_json_from_response(response.text)
         return {"success": True, "data": data, "rawText": full_text}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Erro interno ao processar OCR")
 
 
 @app.post("/generate-pdf")
-async def generate_pdf(req: GeneratePdfRequest):
+async def generate_pdf(req: GeneratePdfRequest, uid: str = Depends(require_auth)):
     try:
+        validate_generate_pdf_request(req)
         from weasyprint import HTML
         html_str = req.htmlContent
         if not html_str.strip().startswith("<"):
@@ -491,7 +551,7 @@ h3 {{ font-size: {req.fontSize + 1}pt; }}
         pdf_bytes = HTML(string=html_str).write_pdf()
         return Response(content=pdf_bytes, media_type="application/pdf")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Erro interno ao gerar PDF")
 
 
 @app.post("/generate-email")
@@ -509,7 +569,7 @@ Currículo (HTML):
 Retorne um JSON com subject e body.
 Exemplo: {{"subject": "Candidatura — Engenheiro de Software Sênior", "body": "<p>...</p>"}}"""
 
-        response = call_gemini_with_key_rotation(
+        response = await call_gemini_async(
             config=types.GenerateContentConfig(
                 system_instruction=EMAIL_SYSTEM_PROMPT,
             ),
@@ -523,4 +583,4 @@ Exemplo: {{"subject": "Candidatura — Engenheiro de Software Sênior", "body": 
             "body": result.get("body", ""),
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Erro interno ao gerar email")

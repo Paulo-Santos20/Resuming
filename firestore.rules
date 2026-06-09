@@ -9,5 +9,9 @@ service cloud.firestore {
       allow read, write: if request.auth != null
         && request.auth.uid == userId;
     }
+    match /{path=**}/versions/{version} {
+      allow read: if request.auth != null
+        && request.auth.uid == path[1];
+    }
   }
 }

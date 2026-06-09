@@ -105,10 +105,10 @@ export function EmailComposer({
           value={body}
           onChange={(e) => setBody(e.target.value)}
           placeholder="Clique em 'Gerar com IA' para criar um email humanizado ou escreva manualmente…"
-          rows={14}
+          rows={8}
           required
           disabled={loading}
-          className="font-body leading-relaxed"
+          className="font-body leading-relaxed resize-y"
         />
       </div>
 

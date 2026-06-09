@@ -1,31 +1,27 @@
-'use client'
-
-import { useMemo } from 'react'
 import type { ResumeData } from '@/types'
 
 interface ResumePreviewATSProps {
   data: ResumeData
 }
 
-export function ResumePreviewATS({ data }: ResumePreviewATSProps) {
-  const style = useMemo(() => ({
+const STYLE = {
     container: {
       fontFamily: "'DM Sans', sans-serif",
       color: 'var(--color-foreground)',
-      maxWidth: '800px',
+      maxWidth: '100%',
       margin: '0 auto',
-      padding: '40px',
+      padding: 'clamp(16px, 4vw, 40px)',
       background: 'var(--color-card)',
       lineHeight: 1.6,
     },
     header: {
       borderBottom: '2px solid var(--color-brand)',
-      paddingBottom: '20px',
-      marginBottom: '24px',
+      paddingBottom: 'clamp(12px, 2vw, 20px)',
+      marginBottom: 'clamp(16px, 3vw, 24px)',
     },
     name: {
       fontFamily: "'Satoshi', sans-serif",
-      fontSize: '28px',
+      fontSize: 'clamp(22px, 5vw, 28px)',
       fontWeight: 700,
       color: 'var(--color-brand)',
       margin: 0,
@@ -71,19 +67,20 @@ export function ResumePreviewATS({ data }: ResumePreviewATSProps) {
       margin: '3px 4px 3px 0',
       color: 'var(--color-foreground)',
     } as React.CSSProperties,
-  }), [])
+  } as const
 
+export function ResumePreviewATS({ data }: ResumePreviewATSProps) {
   return (
-    <div style={style.container}>
-      <div style={style.header}>
-        <h1 style={style.name}>{data.personal.nome}</h1>
-        <div style={style.subtitle}>
+    <div style={STYLE.container}>
+      <div style={STYLE.header}>
+        <h1 style={STYLE.name}>{data.personal.nome}</h1>
+        <div style={STYLE.subtitle}>
           {data.personal.email} {data.personal.telefone && `| ${data.personal.telefone}`}
           {data.personal.endereco && ` | ${data.personal.endereco}`}
           {data.personal.linkedin && ` | ${data.personal.linkedin}`}
         </div>
         {data.personal.resumo && (
-          <p style={{ ...style.subtitle, marginTop: '12px', lineHeight: 1.5 }}>
+          <p style={{ ...STYLE.subtitle, marginTop: '12px', lineHeight: 1.5 }}>
             {data.personal.resumo}
           </p>
         )}
@@ -91,12 +88,12 @@ export function ResumePreviewATS({ data }: ResumePreviewATSProps) {
 
       {data.experiencia.length > 0 && (
         <>
-          <h2 style={style.sectionTitle}>Experiência Profissional</h2>
+          <h2 style={STYLE.sectionTitle}>Experiência Profissional</h2>
           {data.experiencia.map((exp, i) => (
             <div key={i} style={{ marginBottom: '16px' }}>
-              <div style={style.company}>{exp.empresa}</div>
-              <div style={style.role}>{exp.cargo} | {exp.periodo}</div>
-              <ul style={style.highlight}>
+              <div style={STYLE.company}>{exp.empresa}</div>
+              <div style={STYLE.role}>{exp.cargo} | {exp.periodo}</div>
+              <ul style={STYLE.highlight}>
                 {(exp.realizacoes || []).map((h, j) => (
                   <li key={j} style={{ marginBottom: '4px' }}>{h}</li>
                 ))}
@@ -108,11 +105,11 @@ export function ResumePreviewATS({ data }: ResumePreviewATSProps) {
 
       {data.educacao.length > 0 && (
         <>
-          <h2 style={style.sectionTitle}>Formação Acadêmica</h2>
+          <h2 style={STYLE.sectionTitle}>Formação Acadêmica</h2>
           {data.educacao.map((edu, i) => (
             <div key={i} style={{ marginBottom: '8px' }}>
-              <div style={style.company}>{edu.instituicao}</div>
-              <div style={style.role}>{edu.grau} em {edu.curso} | {edu.periodo}</div>
+              <div style={STYLE.company}>{edu.instituicao}</div>
+              <div style={STYLE.role}>{edu.grau} em {edu.curso} | {edu.periodo}</div>
             </div>
           ))}
         </>
@@ -120,10 +117,10 @@ export function ResumePreviewATS({ data }: ResumePreviewATSProps) {
 
       {data.habilidades.length > 0 && (
         <>
-          <h2 style={style.sectionTitle}>Habilidades</h2>
+          <h2 style={STYLE.sectionTitle}>Habilidades</h2>
           <div>
             {data.habilidades.map((skill, i) => (
-              <span key={i} style={style.skillTag}>{skill}</span>
+              <span key={i} style={STYLE.skillTag}>{skill}</span>
             ))}
           </div>
         </>
@@ -131,9 +128,9 @@ export function ResumePreviewATS({ data }: ResumePreviewATSProps) {
 
       {data.idiomas.length > 0 && (
         <>
-          <h2 style={style.sectionTitle}>Idiomas</h2>
+          <h2 style={STYLE.sectionTitle}>Idiomas</h2>
           {data.idiomas.map((lang, i) => (
-            <div key={i} style={style.role}>
+            <div key={i} style={STYLE.role}>
               {lang.idioma} — {lang.nivel}
             </div>
           ))}
@@ -142,9 +139,9 @@ export function ResumePreviewATS({ data }: ResumePreviewATSProps) {
 
       {data.certificacoes.length > 0 && (
         <>
-          <h2 style={style.sectionTitle}>Certificações</h2>
+          <h2 style={STYLE.sectionTitle}>Certificações</h2>
           {data.certificacoes.map((cert, i) => (
-            <div key={i} style={style.role}>
+            <div key={i} style={STYLE.role}>
               {cert.nome} — {cert.instituicao} ({cert.ano})
             </div>
           ))}

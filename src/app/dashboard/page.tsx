@@ -3,7 +3,7 @@
 import { useAuth } from '@/hooks/use-auth'
 import { useResume } from '@/hooks/use-resume'
 import { useJobs } from '@/hooks/use-jobs'
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { FileText, Briefcase, Send, Clock } from 'lucide-react'
@@ -23,17 +23,17 @@ export default function DashboardPage() {
     }
   }, [user?.uid, fetchResumes, fetchJobs])
 
-  const loadingStats = resumeLoading || !resumes.length
+  const loadingStats = resumeLoading && !resumes.length
 
   const sentCount = jobs.filter((j) => j.status === 'sent').length
   const pendingCount = jobs.filter((j) => j.status === 'pending').length
 
-  const stats = [
+  const stats = useMemo(() => [
     { label: 'Currículos', value: resumes.length, icon: FileText, color: 'text-brand' },
     { label: 'Vagas', value: jobs.length, icon: Briefcase, color: 'text-accent' },
     { label: 'Enviadas', value: sentCount, icon: Send, color: 'text-success' },
     { label: 'Pendentes', value: pendingCount, icon: Clock, color: 'text-warning' },
-  ]
+  ], [resumes.length, jobs.length, sentCount, pendingCount])
 
   return (
     <div className="space-y-8">
@@ -56,7 +56,7 @@ export default function DashboardPage() {
                   {loadingStats ? (
                     <Skeleton className="h-9 w-12 mt-1" />
                   ) : (
-                    <p className="font-display text-3xl font-bold mt-1">{stat.value}</p>
+                    <p className="font-display text-2xl sm:text-3xl font-bold mt-1">{stat.value}</p>
                   )}
                 </div>
                 <stat.icon className={`h-8 w-8 ${stat.color} opacity-60`} />

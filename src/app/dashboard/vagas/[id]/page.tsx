@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, memo } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { doc, getDoc } from 'firebase/firestore'
 import { getDbInstance } from '@/lib/firebase'
@@ -17,7 +17,42 @@ import Link from 'next/link'
 import { cn } from '@/lib/utils'
 import { sanitizeHtml } from '@/lib/sanitize'
 import { toastError, toastSuccess } from '@/lib/toast'
-import type { JobDescription } from '@/types'
+import type { JobDescription, Resume } from '@/types'
+
+const GenerateButton = memo(function GenerateButton({
+  selectedResumeId,
+  resumes,
+  generating,
+  onGenerate,
+}: {
+  selectedResumeId: string
+  resumes: Resume[]
+  generating: boolean
+  onGenerate: () => void
+}) {
+  const selectedResume = resumes.find((r) => r.id === selectedResumeId)
+  const resumePronto = !!selectedResume?.parsedData
+  let btnText = 'Gerar 2 Versões'
+  let disabled = generating || !selectedResumeId
+  if (!selectedResumeId) {
+    btnText = 'Selecione um currículo'
+  } else if (!resumePronto) {
+    btnText = 'Aguardando processamento…'
+    disabled = true
+  } else if (generating) {
+    btnText = 'Gerando…'
+  }
+  return (
+    <Button onClick={onGenerate} disabled={disabled}>
+      {generating ? (
+        <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent mr-2" />
+      ) : (
+        <Sparkles className="h-4 w-4 mr-2" />
+      )}
+      {btnText}
+    </Button>
+  )
+})
 
 export default function VagaDetalhePage() {
   const { id } = useParams<{ id: string }>()
@@ -211,33 +246,12 @@ export default function VagaDetalhePage() {
               </div>
 
               <div className="flex items-center gap-3 pt-2">
-                {(() => {
-                  const selectedResume = resumes.find((r) => r.id === selectedResumeId)
-                  const resumePronto = !!selectedResume?.parsedData
-                  let btnText = 'Gerar 2 Versões'
-                  let disabled = generating || !selectedResumeId
-                  if (!selectedResumeId) {
-                    btnText = 'Selecione um currículo'
-                  } else if (!resumePronto) {
-                    btnText = 'Aguardando processamento…'
-                    disabled = true
-                  } else if (generating) {
-                    btnText = 'Gerando…'
-                  }
-                  return (
-                    <Button
-                      onClick={handleGenerateVersions}
-                      disabled={disabled}
-                    >
-                      {generating ? (
-                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent mr-2" />
-                      ) : (
-                        <Sparkles className="h-4 w-4 mr-2" />
-                      )}
-                      {btnText}
-                    </Button>
-                  )
-                })()}
+                <GenerateButton
+                  selectedResumeId={selectedResumeId}
+                  resumes={resumes}
+                  generating={generating}
+                  onGenerate={handleGenerateVersions}
+                />
               </div>
             </div>
           )}
@@ -343,7 +357,7 @@ export default function VagaDetalhePage() {
 
       {/* Post-view action */}
       {chosenVersion && (
-        <div className="flex justify-end gap-3">
+        <div className="flex flex-wrap justify-end gap-3">
           <Button variant="outline" asChild>
             <Link href={`/dashboard/vagas/${job.id}/editar`}>
               <Edit3 className="h-4 w-4 mr-2" />

@@ -9,6 +9,7 @@ import {
   addDoc,
   doc,
   updateDoc,
+  limit,
 } from 'firebase/firestore'
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 import { getDbInstance, getStorageInstance, getAuthInstance } from '@/lib/firebase'
@@ -28,7 +29,8 @@ export function useJobs(userId: string | undefined) {
     try {
       const q = query(
         collection(dbInstance, 'users', userId, 'jobs'),
-        orderBy('createdAt', 'desc')
+        orderBy('createdAt', 'desc'),
+        limit(50)
       )
       const snap = await getDocs(q)
       setJobs(snap.docs.map((d) => ({ id: d.id, ...d.data() } as JobDescription)))
