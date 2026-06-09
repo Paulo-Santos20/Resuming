@@ -97,7 +97,7 @@ export function ResumePreviewATS({ data }: ResumePreviewATSProps) {
               <div style={style.company}>{exp.empresa}</div>
               <div style={style.role}>{exp.cargo} | {exp.periodo}</div>
               <ul style={style.highlight}>
-                {exp.realizacoes.map((h, j) => (
+                {(exp.realizacoes || []).map((h, j) => (
                   <li key={j} style={{ marginBottom: '4px' }}>{h}</li>
                 ))}
               </ul>

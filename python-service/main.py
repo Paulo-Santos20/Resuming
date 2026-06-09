@@ -214,22 +214,34 @@ def extract_json_from_response(text: str) -> dict:
 
 
 def normalizar_resume_data(data: dict) -> dict:
-    if "personal" not in data:
-        personal = {}
-        for chave in ("nome", "email", "telefone", "linkedin", "endereco", "resumo", "resumoProfissional"):
-            if chave in data:
-                personal["resumo" if chave == "resumoProfissional" else chave] = data.pop(chave)
-        data["personal"] = personal
-    if "experiencias" in data and "experiencia" not in data:
-        data["experiencia"] = data.pop("experiencias")
-    if "educacao" not in data and "formacao" in data:
-        data["educacao"] = data.pop("formacao")
-    if "idiomas" not in data and "linguas" in data:
-        data["idiomas"] = data.pop("linguas")
-    if "certificacoes" not in data and "certificados" in data:
-        data["certificacoes"] = data.pop("certificados")
-    for campo in ("personal", "experiencia", "educacao", "habilidades", "idiomas", "certificacoes"):
-        data.setdefault(campo, {} if campo == "personal" else [])
+    try:
+        if "personal" not in data:
+            personal = {}
+            for chave in ("nome", "email", "telefone", "linkedin", "endereco", "resumo", "resumoProfissional"):
+                if chave in data:
+                    valor = data.pop(chave)
+                    chave_destino = "resumo" if chave == "resumoProfissional" else chave
+                    personal[chave_destino] = valor
+            data["personal"] = personal
+
+        if "experiencias" in data and "experiencia" not in data:
+            data["experiencia"] = data.pop("experiencias")
+
+        for exp in data.get("experiencia", []):
+            if isinstance(exp.get("descricao"), str) and "realizacoes" not in exp:
+                exp["realizacoes"] = [exp.pop("descricao")]
+
+        if "educacao" not in data and "formacao" in data:
+            data["educacao"] = data.pop("formacao")
+        if "idiomas" not in data and "linguas" in data:
+            data["idiomas"] = data.pop("linguas")
+        if "certificacoes" not in data and "certificados" in data:
+            data["certificacoes"] = data.pop("certificados")
+
+        for campo in ("personal", "experiencia", "educacao", "habilidades", "idiomas", "certificacoes"):
+            data.setdefault(campo, {} if campo == "personal" else [])
+    except Exception as e:
+        print(f"[normalizar_resume_data] ERRO: {e}")
     return data
 
 
