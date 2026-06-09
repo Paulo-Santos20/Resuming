@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
-import { ArrowLeft, Edit3, Send, Sparkles, Check, ExternalLink } from 'lucide-react'
+import { ArrowLeft, Edit3, Send, Sparkles, Check } from 'lucide-react'
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
 import { sanitizeHtml } from '@/lib/sanitize'
@@ -343,32 +343,19 @@ export default function VagaDetalhePage() {
 
       {/* Post-view action */}
       {chosenVersion && (
-        <div className="space-y-4">
-          <div className="flex justify-end gap-3">
-            <Button variant="outline" asChild>
-              <Link href={`/dashboard/vagas/${job.id}/editar`}>
-                <Edit3 className="h-4 w-4 mr-2" />
-                Editar manualmente
-              </Link>
-            </Button>
-            <Button variant="accent" asChild>
-              <Link href={`/dashboard/vagas/${job.id}/email`}>
-                <Send className="h-4 w-4 mr-2" />
-                Enviar por Email
-              </Link>
-            </Button>
-          </div>
-          <div className="flex items-center justify-end gap-4 text-xs text-muted-foreground">
-            <span className="font-medium">Resuming v1.0</span>
-            <a href="https://github.com/Paulo-Santos20/Resuming" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 hover:text-primary transition-colors">
-              <ExternalLink className="h-3 w-3" />
-              Repositório
-            </a>
-            <a href="https://resuming-seven.vercel.app/" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 hover:text-primary transition-colors">
-              <ExternalLink className="h-3 w-3" />
-              Site
-            </a>
-          </div>
+        <div className="flex justify-end gap-3">
+          <Button variant="outline" asChild>
+            <Link href={`/dashboard/vagas/${job.id}/editar`}>
+              <Edit3 className="h-4 w-4 mr-2" />
+              Editar manualmente
+            </Link>
+          </Button>
+          <Button variant="accent" asChild>
+            <Link href={`/dashboard/vagas/${job.id}/email`}>
+              <Send className="h-4 w-4 mr-2" />
+              Enviar por Email
+            </Link>
+          </Button>
         </div>
       )}
     </div>

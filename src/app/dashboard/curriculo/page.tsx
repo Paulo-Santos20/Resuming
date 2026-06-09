@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useAuth } from '@/hooks/use-auth'
 import { useResume } from '@/hooks/use-resume'
 import { useState, useEffect } from 'react'
@@ -9,7 +10,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
-import { Eye, Trash2, Clock, ExternalLink } from 'lucide-react'
+import { Eye, Trash2, Clock, Edit3 } from 'lucide-react'
 
 export default function CurriculoPage() {
   const { user } = useAuth()
@@ -113,6 +114,13 @@ export default function CurriculoPage() {
                     >
                       <Eye className="h-4 w-4" />
                     </Button>
+                    {resume.parsedData && (
+                      <Button variant="ghost" size="icon" aria-label="Editar currículo" asChild>
+                        <Link href={`/dashboard/curriculo/${resume.id}/editar`}>
+                          <Edit3 className="h-4 w-4" />
+                        </Link>
+                      </Button>
+                    )}
                   <Button
                     variant="ghost"
                     size="icon"
@@ -143,17 +151,6 @@ export default function CurriculoPage() {
         loading={deleting}
       />
 
-      <div className="flex items-center gap-4 pt-4 text-xs text-muted-foreground border-t">
-        <span className="font-medium">Resuming v1.0</span>
-        <a href="https://github.com/Paulo-Santos20/Resuming" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 hover:text-primary transition-colors">
-          <ExternalLink className="h-3 w-3" />
-          Repositório
-        </a>
-        <a href="https://resuming-seven.vercel.app/" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 hover:text-primary transition-colors">
-          <ExternalLink className="h-3 w-3" />
-          Site
-        </a>
-      </div>
     </div>
   )
 }
