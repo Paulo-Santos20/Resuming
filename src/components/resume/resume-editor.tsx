@@ -1,11 +1,12 @@
 'use client'
 
+import { useCallback } from 'react'
 import { EditorContent } from '@tiptap/react'
 import { useResumeEditor } from '@/hooks/use-resume-editor'
 import { EditorToolbar } from './editor-toolbar'
 import { FormattingPanel } from './formatting-panel'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft, Save, Loader2 } from 'lucide-react'
+import { ArrowLeft, Save, Eye, Loader2 } from 'lucide-react'
 import type { ResumeFormatting, TemplateStyle } from '@/types/editor'
 
 interface ResumeEditorProps {
@@ -53,6 +54,52 @@ export function ResumeEditor({
       </div>
     )
   }
+
+  const handlePreview = useCallback(async () => {
+    const content = editor.getHTML()
+    const res = await fetch(`/styles/templates/${templateStyle}.css`)
+    const templateCss = await res.text()
+
+    const pw = window.open('', 'rm-preview')
+    if (!pw) return
+
+    pw.document.write(`<!DOCTYPE html>
+<html lang="pt-BR">
+<head><meta charset="utf-8"><title>Pré-visualização</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: ${formatting.fontFamily}, sans-serif;
+  font-size: ${formatting.fontSize}pt;
+  line-height: ${formatting.lineHeight};
+  color: #333;
+  background: #f5f5f5;
+  display: flex;
+  justify-content: center;
+  padding: 20mm 0;
+}
+.preview-page {
+  width: 210mm;
+  min-height: 297mm;
+  background: #fff;
+  padding: ${formatting.pageMargins}mm;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+}
+.rm-template h1, .rm-template h2, .rm-template h3 {
+  color: ${formatting.accentColor};
+  font-family: ${formatting.fontFamily}, sans-serif;
+}
+.rm-template h1 { font-size: ${Math.min(formatting.fontSize + 6, 22)}pt; margin-bottom: 4px; }
+.rm-template h2 { font-size: ${Math.min(formatting.fontSize + 3, 17)}pt; border-bottom: 2px solid ${formatting.accentColor}; padding-bottom: 4px; margin-top: ${formatting.sectionSpacing}px; margin-bottom: 8px; }
+.rm-template h3 { font-size: ${formatting.fontSize + 1}pt; margin-top: ${formatting.sectionSpacing * 0.7}px; margin-bottom: 4px; }
+.rm-template p { margin-bottom: ${formatting.sectionSpacing * 0.4}px; }
+.rm-template ul, .rm-template ol { margin-bottom: ${formatting.sectionSpacing * 0.4}px; padding-left: 20px; }
+.rm-template li { margin-bottom: 2px; }
+${templateCss}
+</style></head>
+<body><div class="preview-page"><div class="rm-template">${content}</div></div></body></html>`)
+    pw.document.close()
+  }, [editor, formatting, templateStyle])
 
   return (
     <div className="flex flex-col gap-4 lg:flex-row">
@@ -109,6 +156,10 @@ export function ResumeEditor({
                 Salvo {new Date(lastSaved).toLocaleTimeString('pt-BR')}
               </span>
             )}
+            <Button variant="outline" onClick={handlePreview}>
+              <Eye className="h-4 w-4 mr-2" />
+              Visualizar
+            </Button>
             <Button onClick={save} disabled={saving || !isDirty}>
               {saving ? (
                 <Loader2 className="h-4 w-4 animate-spin mr-2" />

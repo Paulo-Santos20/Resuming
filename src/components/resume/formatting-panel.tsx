@@ -23,6 +23,56 @@ const COLOR_PRESETS = [
   '#52525b',
 ]
 
+function RangeInput({
+  label,
+  value,
+  unit,
+  min,
+  max,
+  step,
+  onChange,
+}: {
+  label: string
+  value: number
+  unit: string
+  min: number
+  max: number
+  step: number
+  onChange: (v: number) => void
+}) {
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-medium">{label}</p>
+        <input
+          type="number"
+          min={min}
+          max={max}
+          step={step}
+          value={value}
+          onChange={(e) => {
+            const v = Number(e.target.value)
+            if (v >= min && v <= max) onChange(v)
+          }}
+          className="w-16 rounded-md border border-border bg-background px-2 py-1 text-xs text-right font-mono [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+        />
+      </div>
+      <input
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={value}
+        onChange={(e) => onChange(Number(e.target.value))}
+        className="w-full"
+      />
+      <div className="flex justify-between text-xs text-muted-foreground">
+        <span>{min}{unit}</span><span>{max}{unit}</span>
+      </div>
+    </div>
+  )
+}
+
 export function FormattingPanel({
   formatting,
   onChange,
@@ -63,72 +113,45 @@ export function FormattingPanel({
         </select>
       </div>
 
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <p className="text-sm font-medium">Tamanho</p>
-          <span className="text-xs text-muted-foreground">{formatting.fontSize}pt</span>
-        </div>
-        <input
-          type="range"
-          min="10"
-          max="16"
-          step="1"
-          value={formatting.fontSize}
-          onChange={(e) => onChange({ fontSize: Number(e.target.value) })}
-          className="w-full"
-        />
-        <div className="flex justify-between text-xs text-muted-foreground">
-          <span>10</span><span>16</span>
-        </div>
-      </div>
+      <RangeInput
+        label="Tamanho"
+        value={formatting.fontSize}
+        unit="pt"
+        min={10}
+        max={16}
+        step={1}
+        onChange={(v) => onChange({ fontSize: v })}
+      />
 
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <p className="text-sm font-medium">Altura da linha</p>
-          <span className="text-xs text-muted-foreground">{formatting.lineHeight.toFixed(1)}</span>
-        </div>
-        <input
-          type="range"
-          min="1.0"
-          max="2.0"
-          step="0.1"
-          value={formatting.lineHeight}
-          onChange={(e) => onChange({ lineHeight: Number(e.target.value) })}
-          className="w-full"
-        />
-      </div>
+      <RangeInput
+        label="Altura da linha"
+        value={formatting.lineHeight}
+        unit=""
+        min={1.0}
+        max={2.0}
+        step={0.1}
+        onChange={(v) => onChange({ lineHeight: v })}
+      />
 
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <p className="text-sm font-medium">Espaçamento</p>
-          <span className="text-xs text-muted-foreground">{formatting.sectionSpacing}px</span>
-        </div>
-        <input
-          type="range"
-          min="4"
-          max="24"
-          step="2"
-          value={formatting.sectionSpacing}
-          onChange={(e) => onChange({ sectionSpacing: Number(e.target.value) })}
-          className="w-full"
-        />
-      </div>
+      <RangeInput
+        label="Espaçamento"
+        value={formatting.sectionSpacing}
+        unit="px"
+        min={4}
+        max={24}
+        step={2}
+        onChange={(v) => onChange({ sectionSpacing: v })}
+      />
 
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <p className="text-sm font-medium">Margens</p>
-          <span className="text-xs text-muted-foreground">{formatting.pageMargins}mm</span>
-        </div>
-        <input
-          type="range"
-          min="10"
-          max="30"
-          step="2"
-          value={formatting.pageMargins}
-          onChange={(e) => onChange({ pageMargins: Number(e.target.value) })}
-          className="w-full"
-        />
-      </div>
+      <RangeInput
+        label="Margens"
+        value={formatting.pageMargins}
+        unit="mm"
+        min={10}
+        max={30}
+        step={2}
+        onChange={(v) => onChange({ pageMargins: v })}
+      />
 
       <div className="space-y-2">
         <p className="text-sm font-medium">Cor de destaque</p>
