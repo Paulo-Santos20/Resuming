@@ -1,8 +1,8 @@
 #!/bin/bash
 set -e
 
-PROJECT_ID="${GOOGLE_CLOUD_PROJECT:-resume-react}"
-SERVICE_NAME="resume-react-python"
+PROJECT_ID="${GOOGLE_CLOUD_PROJECT:-resuming}"
+SERVICE_NAME="resuming-python"
 REGION="us-central1"
 IMAGE_NAME="gcr.io/$PROJECT_ID/$SERVICE_NAME"
 

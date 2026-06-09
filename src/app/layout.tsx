@@ -5,15 +5,15 @@ import { Providers } from '@/components/providers'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'Resume React — Currículos Inteligentes',
+  title: 'Resuming — Currículos Inteligentes',
   description: 'Crie currículos otimizados para cada vaga com IA',
   icons: {
     icon: '/favicon.svg',
   },
   openGraph: {
-    title: 'Resume React',
+    title: 'Resuming',
     description: 'Crie currículos otimizados para cada vaga com IA',
-    siteName: 'Resume React',
+    siteName: 'Resuming',
     locale: 'pt_BR',
     type: 'website',
   },

@@ -61,7 +61,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground font-display font-bold text-sm">
             R
           </div>
-          <span className="font-display font-semibold text-sm">Resume React</span>
+          <span className="font-display font-semibold text-sm">Resuming</span>
         </div>
 
         <div className="p-4 lg:p-8">

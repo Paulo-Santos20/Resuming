@@ -11,7 +11,7 @@ import { useEffect } from 'react'
 export default function ConfiguracoesPage() {
   const { profile, logout } = useAuth()
 
-  useEffect(() => { document.title = 'Configurações — Resume React' }, [])
+  useEffect(() => { document.title = 'Configurações — Resuming' }, [])
 
   return (
     <div className="max-w-2xl mx-auto space-y-8">

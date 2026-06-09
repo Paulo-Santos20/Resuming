@@ -38,7 +38,7 @@ export default function EmailVagaPage() {
     setResumeHtml(sessionStorage.getItem(`edited-${id}`) || '')
   }, [id])
 
-  useEffect(() => { document.title = 'Enviar E-mail — Resume React' }, [])
+  useEffect(() => { document.title = 'Enviar E-mail — Resuming' }, [])
 
   useEffect(() => {
     if (!user?.uid || !id) return

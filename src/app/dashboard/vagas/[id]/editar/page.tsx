@@ -33,7 +33,7 @@ export default function EditarCurriculoPage() {
   const [initialFormatting, setInitialFormatting] = useState<Partial<ResumeFormatting>>({})
   const [initialTemplate, setInitialTemplate] = useState<TemplateStyle>('classic')
 
-  useEffect(() => { document.title = 'Editar Currículo — Resume React' }, [])
+  useEffect(() => { document.title = 'Editar Currículo — Resuming' }, [])
 
   useEffect(() => {
     if (!user?.uid || !id) return
