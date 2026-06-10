@@ -37,20 +37,41 @@ def init_firebase():
         if key_path and os.path.exists(key_path):
             cred = credentials.Certificate(key_path)
             firebase_admin.initialize_app(cred)
-        else:
-            firebase_admin.initialize_app()
+            _firebase_initialized = True
+            return True
+
+        client_email = os.environ.get("FIREBASE_ADMIN_CLIENT_EMAIL")
+        private_key = os.environ.get("FIREBASE_ADMIN_PRIVATE_KEY", "").replace("\\n", "\n").strip('"').strip("'")
+        project_id = os.environ.get("NEXT_PUBLIC_FIREBASE_PROJECT_ID")
+
+        if client_email and private_key:
+            cred = credentials.Certificate({
+                "type": "service_account",
+                "client_email": client_email,
+                "private_key": private_key,
+                "project_id": project_id,
+                "token_uri": "https://oauth2.googleapis.com/token",
+            })
+            firebase_admin.initialize_app(cred)
+            _firebase_initialized = True
+            return True
+
+        firebase_admin.initialize_app()
         _firebase_initialized = True
         return True
-    except Exception:
+    except Exception as e:
+        print(f"[init_firebase] ERRO: {e}")
         return False
 
 def verify_firebase_token(authorization: Optional[str]) -> Optional[str]:
     if not _firebase_initialized:
         if not init_firebase():
             return None
-    if not authorization or not authorization.startswith("Bearer "):
+    if not authorization:
         return None
-    token = authorization.split("Bearer ")[1]
+    token = authorization
+    if token.startswith("Bearer "):
+        token = token.split("Bearer ")[1]
     try:
         from firebase_admin import auth
         decoded = auth.verify_id_token(token)

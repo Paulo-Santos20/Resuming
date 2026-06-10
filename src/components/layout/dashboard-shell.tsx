@@ -30,7 +30,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   if (loading) {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-4">
+        <div className="glass-card rounded-xl flex flex-col items-center gap-4 px-8 py-12">
           <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent" role="status" aria-label="Carregando" />
           <p className="text-sm text-muted-foreground">Carregando…</p>
         </div>
@@ -41,7 +41,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   if (!user || !profile) return null
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
+    <div className="flex h-screen overflow-hidden">
       <Sidebar
         onLogout={logout}
         userName={profile.name}
@@ -52,9 +52,9 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       />
 
       {/* Main */}
-      <main className="flex-1 overflow-y-auto">
+      <main className="flex-1 min-w-0 overflow-y-auto">
         {/* Mobile top bar */}
-        <div className="sticky top-0 z-30 flex items-center gap-3 border-b border-border bg-background/80 px-4 py-3 lg:hidden">
+        <div className="glass sticky top-0 z-30 flex items-center gap-3 border-b border-border/50 px-4 py-3 lg:hidden">
           <Button variant="ghost" size="icon" onClick={toggleMobileSidebar} aria-label="Abrir menu">
             <Menu className="h-5 w-5" />
           </Button>

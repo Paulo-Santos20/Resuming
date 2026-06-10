@@ -37,7 +37,7 @@ export default function VagasPage() {
       </div>
 
       {loading ? (
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {[1, 2].map((i) => (
             <Skeleton key={i} className="h-48 rounded-xl" />
           ))}
@@ -56,7 +56,7 @@ export default function VagasPage() {
           </Button>
         </div>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {jobs.map((job) => (
             <JobCard key={job.id} job={job} />
           ))}

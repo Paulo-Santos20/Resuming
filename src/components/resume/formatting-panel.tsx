@@ -42,8 +42,8 @@ function RangeInput({
 }) {
   return (
     <div className="space-y-2">
-      <div className="flex items-center justify-between">
-        <p className="text-sm font-medium">{label}</p>
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-sm font-medium truncate">{label}</p>
         <input
           type="number"
           min={min}
@@ -104,7 +104,7 @@ export const FormattingPanel = memo(function FormattingPanel({
   }, [templateStyle])
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <TemplateSelector value={templateStyle} onChange={onTemplateChange} />
 
       <div className="space-y-2">
@@ -112,7 +112,7 @@ export const FormattingPanel = memo(function FormattingPanel({
         <select
           value={formatting.fontFamily}
           onChange={handleFontChange}
-          className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm"
+          className="w-full rounded-md border border-border bg-background/50 px-3 py-1.5 text-sm"
         >
           {FONT_OPTIONS.map((f) => (
             <option key={f} value={f}>{f}</option>
@@ -160,29 +160,29 @@ export const FormattingPanel = memo(function FormattingPanel({
         onChange={(v) => onChange({ pageMargins: v })}
       />
 
-      <div className="space-y-2">
+      <div className="space-y-3">
         <p className="text-sm font-medium">Cor de destaque</p>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap gap-2">
           {COLOR_PRESETS.map((color) => (
             <button
               key={color}
               type="button"
               onClick={() => onChange({ accentColor: color })}
-              className="flex items-center justify-center min-h-[44px] min-w-[44px] rounded-full border border-border transition-transform hover:scale-110"
+              className="flex items-center justify-center min-h-[44px] min-w-[44px] rounded-full border border-border transition-transform hover:scale-110 hover:shadow-lg"
               aria-label={`Cor ${color}`}
             >
               <span className="h-6 w-6 rounded-full" style={{ backgroundColor: color }} />
             </button>
           ))}
         </div>
-        <div className="flex items-center gap-2 pt-1">
+        <div className="flex items-center gap-2 pt-2 border-t border-border/50">
           <input
             type="color"
             value={formatting.accentColor}
             onChange={handleColorPickerChange}
             className="min-h-[44px] w-14 cursor-pointer rounded border border-border"
           />
-          <span className="text-xs text-muted-foreground font-mono">{formatting.accentColor}</span>
+          <span className="text-xs text-muted-foreground font-mono truncate">{formatting.accentColor}</span>
         </div>
       </div>
     </div>

@@ -14,14 +14,7 @@ function getInitialDarkMode(): boolean {
 }
 
 function getInitialSidebarOpen(): boolean {
-  if (typeof window === 'undefined') return true
-  try {
-    const stored = localStorage.getItem('mr-sidebar-open')
-    if (stored !== null) return stored === 'true'
-    return true
-  } catch {
-    return true
-  }
+  return true
 }
 
 function applyDarkMode(dark: boolean) {
@@ -63,24 +56,9 @@ export const useUIStore = create<UIState>((set) => ({
   },
 
   toggleSidebar: () =>
-    set((s) => {
-      const next = !s.sidebarOpen
-      try {
-        localStorage.setItem('mr-sidebar-open', String(next))
-      } catch {
-        // localStorage unavailable
-      }
-      return { sidebarOpen: next }
-    }),
+    set((s) => ({ sidebarOpen: !s.sidebarOpen })),
 
-  setSidebarOpen: (open) => {
-    try {
-      localStorage.setItem('mr-sidebar-open', String(open))
-    } catch {
-      // localStorage unavailable
-    }
-    set({ sidebarOpen: open })
-  },
+  setSidebarOpen: (open) => set({ sidebarOpen: open }),
 
   toggleMobileSidebar: () =>
     set((s) => ({ mobileSidebarOpen: !s.mobileSidebarOpen })),

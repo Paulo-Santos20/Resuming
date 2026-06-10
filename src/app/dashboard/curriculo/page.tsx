@@ -73,11 +73,11 @@ export default function CurriculoPage() {
             {resumes.map((resume) => (
               <div
                 key={resume.id}
-                className="flex items-center justify-between rounded-lg border p-4 bg-card"
+                className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-lg border p-4 bg-card"
               >
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <p className="font-medium text-sm truncate">{resume.originalFileName}</p>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="font-medium text-sm truncate max-w-full">{resume.originalFileName}</p>
                     {(!resume.parsedData && resume.status !== 'error') && (
                       <Badge variant="warning" className="shrink-0">
                         <Clock className="h-3 w-3 mr-1" />
@@ -100,7 +100,7 @@ export default function CurriculoPage() {
                           : 'Aguardando processamento pelo backend…'}
                   </p>
                 </div>
-                <div className="flex items-center gap-1 ml-4 shrink-0">
+                <div className="flex items-center gap-1 shrink-0 self-end sm:self-auto">
                     <Button
                       variant="ghost"
                       size="icon"
