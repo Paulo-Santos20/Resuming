@@ -1,40 +1,59 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import dynamic from 'next/dynamic'
 import { useParams, useRouter } from 'next/navigation'
-import { doc, getDoc, collection, collectionGroup, getDocs, updateDoc, query, orderBy, where } from 'firebase/firestore'
-import { getDbInstance } from '@/lib/firebase'
+import { doc, getDoc, updateDoc } from 'firebase/firestore'
+import { getDbInstance, getAuthInstance } from '@/lib/firebase'
 import { useAuth } from '@/hooks/use-auth'
+import { useResume } from '@/hooks/use-resume'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
-import { ArrowLeft, Save } from 'lucide-react'
-import { toastSuccess } from '@/lib/toast'
-import type { JobDescription, ResumeVersion } from '@/types'
-import type { ResumeFormatting, TemplateStyle } from '@/types/editor'
-import { DEFAULT_FORMATTING } from '@/types/editor'
+import { ArrowLeft, Save, Eye, Download, Check, Edit3, Loader2 } from 'lucide-react'
+import { toastSuccess, toastError } from '@/lib/toast'
+import { sanitizeHtml } from '@/lib/sanitize'
+import { renderResumeDataToHtml } from '@/lib/render-resume-data'
+import { cn } from '@/lib/utils'
+import type { JobDescription, Resume } from '@/types'
 
 const ResumeEditor = dynamic(
   () => import('@/components/resume/resume-editor').then((m) => m.ResumeEditor),
   { ssr: false }
 )
 
+type VersionKey = 'uploaded' | 'ats' | 'original'
+
+interface VersionTab {
+  key: VersionKey
+  label: string
+  badge: string
+  badgeVariant: 'default' | 'secondary' | 'outline'
+  content: string | null
+  versionId?: string
+  resumeId?: string
+}
+
 export default function EditarCurriculoPage() {
   const { id } = useParams<{ id: string }>()
   const { user } = useAuth()
   const router = useRouter()
+  const { resumes, loading: resumesLoading } = useResume(user?.uid)
   const [job, setJob] = useState<JobDescription | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
 
-  const [initialContent, setInitialContent] = useState('')
-  const [versionId, setVersionId] = useState<string | undefined>(undefined)
-  const [resumeId, setResumeId] = useState<string | undefined>(undefined)
-  const [initialFormatting, setInitialFormatting] = useState<Partial<ResumeFormatting>>({})
-  const [initialTemplate, setInitialTemplate] = useState<TemplateStyle>('classic')
+  const [versionAts, setVersionAts] = useState<string | null>(null)
+  const [versionOriginal, setVersionOriginal] = useState<string | null>(null)
+  const [originalContent, setOriginalContent] = useState<string | null>(null)
+
+  const [selectedVersion, setSelectedVersion] = useState<VersionKey | null>(null)
+  const [resumeId, setResumeId] = useState<string>('temp')
 
   useEffect(() => { document.title = 'Editar Currículo — Resuming' }, [])
 
+  // Load job
   useEffect(() => {
     if (!user?.uid || !id) return
     const load = async () => {
@@ -43,45 +62,123 @@ export default function EditarCurriculoPage() {
         if (jobSnap.exists()) {
           setJob({ id: jobSnap.id, ...jobSnap.data() } as JobDescription)
         }
-
-        const cached = sessionStorage.getItem(`edited-${id}`)
-        if (cached) {
-          setInitialContent(cached)
-        }
-
-        const versionsQuery = query(
-          collectionGroup(getDbInstance(), 'versions'),
-          where('jobId', '==', id),
-          orderBy('createdAt', 'desc')
-        )
-        const versionsSnap = await getDocs(versionsQuery)
-        const allVersions: ResumeVersion[] = versionsSnap.docs.map(
-          (d) => ({ id: d.id, ...d.data() }) as ResumeVersion
-        )
-        if (allVersions.length > 0) {
-          allVersions.sort((a, b) => b.createdAt - a.createdAt)
-          const latest = allVersions[0]
-          if (!cached) setInitialContent(latest.content)
-          setVersionId(latest.id)
-          setResumeId(latest.resumeId)
-          if (latest.formatting) setInitialFormatting(latest.formatting)
-          if (latest.templateStyle) setInitialTemplate(latest.templateStyle)
-        }
       } catch (err) {
-        console.error('Error loading edit page:', err)
+        console.error('Error loading job:', err)
       }
       setLoading(false)
     }
     load()
   }, [user?.uid, id])
 
-  // Infer resumeId from sessionStorage if not found in versions
+  // Load versions from sessionStorage
   useEffect(() => {
-    if (!resumeId && !loading) {
-      const storedResumeId = sessionStorage.getItem(`resume-${id}`)
-      if (storedResumeId) setResumeId(storedResumeId)
+    if (!id) return
+    const ats = sessionStorage.getItem(`edited-${id}-ats`)
+    const orig = sessionStorage.getItem(`edited-${id}-original`)
+    if (ats) setVersionAts(ats)
+    if (orig) setVersionOriginal(orig)
+
+    const storedResumeId = sessionStorage.getItem(`resume-${id}`)
+    if (storedResumeId) setResumeId(storedResumeId)
+  }, [id])
+
+  // Render uploaded resume data as HTML
+  useEffect(() => {
+    if (!resumes.length) return
+    const processed = resumes.find((r) => r.parsedData)
+    if (!processed?.parsedData) return
+    setOriginalContent(renderResumeDataToHtml(processed.parsedData))
+    if (!sessionStorage.getItem(`resume-${id}`)) {
+      setResumeId(processed.id)
     }
-  }, [resumeId, loading, id])
+  }, [resumes, id])
+
+  // Auto-select first available version
+  useEffect(() => {
+    if (selectedVersion) return
+    if (versionAts) setSelectedVersion('ats')
+    else if (versionOriginal) setSelectedVersion('original')
+    else if (originalContent) setSelectedVersion('uploaded')
+  }, [versionAts, versionOriginal, originalContent, selectedVersion])
+
+  const tabs: VersionTab[] = useMemo(() => [
+    {
+      key: 'uploaded',
+      label: 'Currículo Original',
+      badge: 'Upload',
+      badgeVariant: 'outline' as const,
+      content: originalContent,
+    },
+    {
+      key: 'ats',
+      label: 'Versão ATS',
+      badge: 'ATS',
+      badgeVariant: 'default' as const,
+      content: versionAts,
+    },
+    {
+      key: 'original',
+      label: 'Versão Original',
+      badge: 'Original',
+      badgeVariant: 'secondary' as const,
+      content: versionOriginal,
+    },
+  ], [versionAts, versionOriginal, originalContent])
+
+  const editingContent = useMemo(() => {
+    if (!selectedVersion) return ''
+    const tab = tabs.find((t) => t.key === selectedVersion)
+    return tab?.content || ''
+  }, [selectedVersion, tabs])
+
+  const handleSelectVersion = useCallback((key: VersionKey) => {
+    setSelectedVersion(key)
+  }, [])
+
+  const openPreview = useCallback((html: string) => {
+    const pw = window.open('', 'rm-preview')
+    if (!pw) return
+    pw.document.write(`<!DOCTYPE html>
+<html lang="pt-BR">
+<head><meta charset="utf-8"><title>Pré-visualização</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: Arial, sans-serif; font-size: 11pt; line-height: 1.4; background: #f5f5f5; display: flex; justify-content: center; padding: 20mm 0; }
+.preview-page { width: 210mm; background: #fff; padding: 20mm; box-shadow: 0 2px 12px rgba(0,0,0,0.1); }
+.rm-template { color: #333; }
+.rm-template h1 { font-size: 18pt; margin-bottom: 4px; }
+.rm-template h2 { font-size: 14pt; border-bottom: 2px solid #2563eb; padding-bottom: 4px; margin-top: 16px; margin-bottom: 8px; }
+.rm-template h3 { font-size: 12pt; margin-top: 12px; margin-bottom: 4px; }
+.rm-template p { margin-bottom: 6px; }
+.rm-template ul, .rm-template ol { margin-bottom: 6px; padding-left: 20px; }
+.rm-template li { margin-bottom: 2px; }
+@media print { body { padding: 0; background: #fff; } .preview-page { box-shadow: none; padding: 15mm; } }
+</style></head>
+<body><div class="preview-page"><div class="rm-template">${sanitizeHtml(html)}</div></div></body></html>`)
+    pw.document.close()
+  }, [])
+
+  const downloadPdf = useCallback(async (html: string, type: string) => {
+    try {
+      const idToken = await getAuthInstance().currentUser?.getIdToken()
+      if (!idToken) throw new Error('Não autenticado')
+      const res = await fetch('/api/python/generate-pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` },
+        body: JSON.stringify({ htmlContent: html }),
+      })
+      if (!res.ok) throw new Error('Erro ao gerar PDF')
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `curriculo-${type}.pdf`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch {
+      toastError('Erro ao gerar PDF')
+    }
+  }, [])
 
   const handleSaveAndExit = async () => {
     if (!user?.uid || !id) return
@@ -99,10 +196,11 @@ export default function EditarCurriculoPage() {
     }
   }
 
-  if (loading) {
+  if (loading || resumesLoading) {
     return (
       <div className="max-w-6xl mx-auto space-y-8">
         <Skeleton className="h-8 w-64" />
+        <Skeleton className="h-32 w-full rounded-xl" />
         <Skeleton className="h-96 w-full rounded-xl" />
       </div>
     )
@@ -110,6 +208,7 @@ export default function EditarCurriculoPage() {
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
+      {/* Header */}
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" onClick={() => router.back()} aria-label="Voltar">
           <ArrowLeft className="h-4 w-4" />
@@ -122,27 +221,95 @@ export default function EditarCurriculoPage() {
         </div>
       </div>
 
-      {resumeId ? (
+      {/* Version selector cards */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {tabs.map((tab) => (
+          <Card
+            key={tab.key}
+            className={cn(
+              'relative cursor-pointer transition-all duration-200 glass-card rounded-xl',
+              selectedVersion === tab.key && 'ring-2 ring-primary/50 shadow-lg'
+            )}
+            onClick={() => tab.content && handleSelectVersion(tab.key)}
+          >
+            <CardHeader className="flex flex-row items-center justify-between gap-2 pb-3">
+              <div className="flex items-center gap-2 min-w-0">
+                <CardTitle className="text-sm truncate">{tab.label}</CardTitle>
+                <Badge variant={tab.badgeVariant} className="shrink-0">{tab.badge}</Badge>
+              </div>
+              {selectedVersion === tab.key && (
+                <Check className="h-4 w-4 text-primary shrink-0" />
+              )}
+            </CardHeader>
+            <CardContent className="pt-0">
+              {tab.content ? (
+                <div className="relative">
+                  <div
+                    className="prose prose-xs max-w-none max-h-32 overflow-y-auto preview-scroll text-muted-foreground text-xs [&_h1]:text-sm [&_h2]:text-xs [&_h3]:text-xs"
+                    dangerouslySetInnerHTML={{ __html: sanitizeHtml(tab.content) }}
+                  />
+                  <div className="absolute inset-x-0 bottom-0 h-6 bg-gradient-to-t from-card to-transparent" />
+                </div>
+              ) : (
+                <div className="flex items-center justify-center h-20 text-muted-foreground text-xs">
+                  Nenhum conteúdo disponível
+                </div>
+              )}
+              <div className="flex items-center gap-1 mt-2 pt-2 border-t">
+                {tab.content ? (
+                  <>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={(e) => { e.stopPropagation(); openPreview(tab.content!) }}
+                      title="Visualizar"
+                    >
+                      <Eye className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={(e) => { e.stopPropagation(); downloadPdf(tab.content!, tab.key) }}
+                      title="Download PDF"
+                    >
+                      <Download className="h-3.5 w-3.5" />
+                    </Button>
+                    {selectedVersion !== tab.key && (
+                      <Button
+                        variant="default"
+                        size="sm"
+                        className="ml-auto h-7 text-xs"
+                        onClick={(e) => { e.stopPropagation(); handleSelectVersion(tab.key) }}
+                      >
+                        <Edit3 className="h-3 w-3 mr-1" />
+                        Editar
+                      </Button>
+                    )}
+                  </>
+                ) : (
+                  <span className="text-xs text-muted-foreground italic">
+                    Gere versões na página da vaga
+                  </span>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Editor */}
+      {editingContent ? (
         <ResumeEditor
-          initialContent={initialContent}
+          key={selectedVersion}
+          initialContent={editingContent}
           jobId={id}
           resumeId={resumeId}
-          versionId={versionId}
-          initialFormatting={initialFormatting}
-          initialTemplate={initialTemplate}
-          onBack={() => router.push(`/dashboard/vagas/${id}`)}
-        />
-      ) : initialContent ? (
-        <ResumeEditor
-          initialContent={initialContent}
-          jobId={id}
-          resumeId="temp"
-          initialFormatting={initialFormatting}
-          initialTemplate={initialTemplate}
           onBack={() => router.push(`/dashboard/vagas/${id}`)}
         />
       ) : (
-        <div className="rounded-lg border bg-card p-12 text-center text-muted-foreground">
+        <div className="glass-card rounded-xl p-12 text-center text-muted-foreground">
           <p>Nenhum conteúdo para editar.</p>
           <p className="text-sm mt-1">Gere uma versão na página da vaga primeiro.</p>
           <Button asChild className="mt-4">
@@ -151,13 +318,14 @@ export default function EditarCurriculoPage() {
         </div>
       )}
 
+      {/* Save */}
       <div className="flex justify-end gap-3">
         <Button variant="outline" onClick={() => router.back()} aria-label="Cancelar e voltar">
           Cancelar
         </Button>
         <Button onClick={handleSaveAndExit} disabled={saving}>
           {saving ? (
-            <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent mr-2" />
+            <Loader2 className="h-4 w-4 animate-spin mr-2" />
           ) : (
             <Save className="h-4 w-4 mr-2" />
           )}

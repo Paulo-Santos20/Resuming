@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, memo } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { doc, getDoc } from 'firebase/firestore'
-import { getDbInstance } from '@/lib/firebase'
+import { getDbInstance, getAuthInstance } from '@/lib/firebase'
 import { useAuth } from '@/hooks/use-auth'
 import { useResume } from '@/hooks/use-resume'
 import { useJobs } from '@/hooks/use-jobs'
@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
-import { ArrowLeft, Edit3, Send, Sparkles, Check } from 'lucide-react'
+import { ArrowLeft, Edit3, Send, Sparkles, Check, Eye, Download } from 'lucide-react'
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
 import { sanitizeHtml } from '@/lib/sanitize'
@@ -146,6 +146,60 @@ export default function VagaDetalhePage() {
     toastSuccess(`Versão ${type === 'ats' ? 'ATS' : 'Original'} selecionada`)
   }
 
+  const handleEditVersion = useCallback((type: 'ats' | 'original') => {
+    if (!job) return
+    const content = type === 'ats' ? versionAts : versionOriginal
+    if (!content) return
+    sessionStorage.setItem(`chosen-${job.id}`, type)
+    sessionStorage.setItem(`edited-${job.id}`, content)
+    router.push(`/dashboard/vagas/${job.id}/editar`)
+  }, [job, versionAts, versionOriginal, router])
+
+  const openPreview = useCallback((html: string) => {
+    const pw = window.open('', 'rm-preview')
+    if (!pw) return
+    pw.document.write(`<!DOCTYPE html>
+<html lang="pt-BR">
+<head><meta charset="utf-8"><title>Pré-visualização</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: Arial, sans-serif; font-size: 11pt; line-height: 1.4; background: #f5f5f5; display: flex; justify-content: center; padding: 20mm 0; }
+.preview-page { width: 210mm; background: #fff; padding: 20mm; box-shadow: 0 2px 12px rgba(0,0,0,0.1); }
+.rm-template { color: #333; }
+.rm-template h1 { font-size: 18pt; margin-bottom: 4px; }
+.rm-template h2 { font-size: 14pt; border-bottom: 2px solid #2563eb; padding-bottom: 4px; margin-top: 16px; margin-bottom: 8px; }
+.rm-template h3 { font-size: 12pt; margin-top: 12px; margin-bottom: 4px; }
+.rm-template p { margin-bottom: 6px; }
+.rm-template ul, .rm-template ol { margin-bottom: 6px; padding-left: 20px; }
+.rm-template li { margin-bottom: 2px; }
+@media print { body { padding: 0; background: #fff; } .preview-page { box-shadow: none; padding: 15mm; } }
+</style></head>
+<body><div class="preview-page"><div class="rm-template">${sanitizeHtml(html)}</div></div></body></html>`)
+    pw.document.close()
+  }, [])
+
+  const downloadPdf = useCallback(async (html: string, type: string) => {
+    try {
+      const idToken = await getAuthInstance().currentUser?.getIdToken()
+      if (!idToken) throw new Error('Não autenticado')
+      const res = await fetch('/api/python/generate-pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` },
+        body: JSON.stringify({ htmlContent: html }),
+      })
+      if (!res.ok) throw new Error('Erro ao gerar PDF')
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `curriculo-${type}.pdf`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch {
+      toastError('Erro ao gerar PDF')
+    }
+  }, [])
+
   if (loading) {
     return (
       <div className="space-y-6">
@@ -203,7 +257,7 @@ export default function VagaDetalhePage() {
       </div>
 
       {/* Resume selector */}
-      <Card>
+      <Card className="glass-card rounded-xl border-0">
         <CardHeader>
           <CardTitle>Selecionar Currículo</CardTitle>
         </CardHeader>
@@ -259,7 +313,7 @@ export default function VagaDetalhePage() {
       </Card>
 
       {/* Description */}
-      <Card>
+      <Card className="glass-card rounded-xl border-0">
         <CardHeader>
           <CardTitle>Descrição da Vaga</CardTitle>
         </CardHeader>
@@ -275,29 +329,42 @@ export default function VagaDetalhePage() {
         <div className="grid gap-6 lg:grid-cols-2">
           {/* Version ATS */}
           <Card className={cn(
-            'relative transition-shadow',
-            chosenVersion === 'ats' && 'ring-2 ring-primary shadow-lg'
+            'relative transition-all duration-200 glass-card rounded-xl border-0',
+            chosenVersion === 'ats' && 'ring-2 ring-primary/50 shadow-lg'
           )}>
-            <CardHeader className="flex flex-row items-center justify-between">
+            <CardHeader className="flex flex-row items-center justify-between flex-wrap gap-2">
               <div className="flex items-center gap-2">
                 <CardTitle>Versão ATS</CardTitle>
                 <Badge variant="default">ATS</Badge>
               </div>
-              {chosenVersion === 'ats' ? (
-                <div className="flex items-center gap-1 text-sm text-success font-medium">
-                  <Check className="h-4 w-4" />
-                  Selecionado
-                </div>
-              ) : (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleChooseVersion('ats')}
-                  disabled={!versionAts}
-                >
-                  Escolher esta
-                </Button>
-              )}
+              <div className="flex items-center gap-1">
+                {versionAts && (
+                  <>
+                    <Button variant="ghost" size="icon" onClick={() => openPreview(versionAts)} title="Visualizar">
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="icon" onClick={() => downloadPdf(versionAts, 'ats')} title="Download PDF">
+                      <Download className="h-4 w-4" />
+                    </Button>
+                  </>
+                )}
+                {chosenVersion === 'ats' ? (
+                  <div className="flex items-center gap-1 text-sm text-success font-medium ml-1 whitespace-nowrap">
+                    <Check className="h-4 w-4" />
+                    Selecionado
+                  </div>
+                ) : (
+                  <>
+                    <Button variant="outline" size="sm" onClick={() => handleChooseVersion('ats')} disabled={!versionAts}>
+                      Escolher esta
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => handleEditVersion('ats')} disabled={!versionAts}>
+                      <Edit3 className="h-3 w-3 mr-1" />
+                      Editar
+                    </Button>
+                  </>
+                )}
+              </div>
             </CardHeader>
             <CardContent>
               {versionAts ? (
@@ -315,29 +382,42 @@ export default function VagaDetalhePage() {
 
           {/* Version Original */}
           <Card className={cn(
-            'relative transition-shadow',
-            chosenVersion === 'original' && 'ring-2 ring-primary shadow-lg'
+            'relative transition-all duration-200 glass-card rounded-xl border-0',
+            chosenVersion === 'original' && 'ring-2 ring-primary/50 shadow-lg'
           )}>
-            <CardHeader className="flex flex-row items-center justify-between">
+            <CardHeader className="flex flex-row items-center justify-between flex-wrap gap-2">
               <div className="flex items-center gap-2">
                 <CardTitle>Versão Original</CardTitle>
                 <Badge variant="secondary">Original</Badge>
               </div>
-              {chosenVersion === 'original' ? (
-                <div className="flex items-center gap-1 text-sm text-success font-medium">
-                  <Check className="h-4 w-4" />
-                  Selecionado
-                </div>
-              ) : (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleChooseVersion('original')}
-                  disabled={!versionOriginal}
-                >
-                  Escolher esta
-                </Button>
-              )}
+              <div className="flex items-center gap-1">
+                {versionOriginal && (
+                  <>
+                    <Button variant="ghost" size="icon" onClick={() => openPreview(versionOriginal)} title="Visualizar">
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="icon" onClick={() => downloadPdf(versionOriginal, 'original')} title="Download PDF">
+                      <Download className="h-4 w-4" />
+                    </Button>
+                  </>
+                )}
+                {chosenVersion === 'original' ? (
+                  <div className="flex items-center gap-1 text-sm text-success font-medium ml-1 whitespace-nowrap">
+                    <Check className="h-4 w-4" />
+                    Selecionado
+                  </div>
+                ) : (
+                  <>
+                    <Button variant="outline" size="sm" onClick={() => handleChooseVersion('original')} disabled={!versionOriginal}>
+                      Escolher esta
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => handleEditVersion('original')} disabled={!versionOriginal}>
+                      <Edit3 className="h-3 w-3 mr-1" />
+                      Editar
+                    </Button>
+                  </>
+                )}
+              </div>
             </CardHeader>
             <CardContent>
               {versionOriginal ? (
@@ -356,7 +436,7 @@ export default function VagaDetalhePage() {
       )}
 
       {/* Post-view action */}
-      {chosenVersion && (
+      {(versionAts || versionOriginal) && (
         <div className="flex flex-wrap justify-end gap-3">
           <Button variant="outline" asChild>
             <Link href={`/dashboard/vagas/${job.id}/editar`}>
@@ -364,12 +444,14 @@ export default function VagaDetalhePage() {
               Editar manualmente
             </Link>
           </Button>
-          <Button variant="accent" asChild>
-            <Link href={`/dashboard/vagas/${job.id}/email`}>
-              <Send className="h-4 w-4 mr-2" />
-              Enviar por Email
-            </Link>
-          </Button>
+          {chosenVersion && (
+            <Button variant="accent" asChild>
+              <Link href={`/dashboard/vagas/${job.id}/email`}>
+                <Send className="h-4 w-4 mr-2" />
+                Enviar por Email
+              </Link>
+            </Button>
+          )}
         </div>
       )}
     </div>

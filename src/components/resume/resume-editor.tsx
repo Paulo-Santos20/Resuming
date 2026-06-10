@@ -59,15 +59,8 @@ export function ResumeEditor({
     return () => document.removeEventListener('keydown', handler)
   }, [save, isDirty, saving])
 
-  if (!editor) {
-    return (
-      <div className="flex items-center justify-center h-[600px]">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-      </div>
-    )
-  }
-
   const handlePreview = useCallback(async () => {
+    if (!editor) return
     const content = editor.getHTML()
     const res = await fetch(`/styles/templates/${templateStyle}.css`)
     const templateCss = await res.text()
@@ -114,10 +107,21 @@ ${templateCss}
     pw.document.close()
   }, [editor, formatting, templateStyle])
 
+  if (!editor) {
+    return (
+      <div className="glass-card rounded-xl flex items-center justify-center h-[600px]">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="h-8 w-8 animate-spin text-primary/60" />
+          <p className="text-sm text-muted-foreground">Carregando editor…</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
-    <div className="flex flex-col gap-4 lg:flex-row">
+    <div className="flex flex-col gap-6 lg:flex-row">
       <div className="flex-1 min-w-0">
-        <div className="rounded-lg border bg-card overflow-hidden">
+        <div className="glass-card overflow-hidden rounded-xl">
           <EditorToolbar editor={editor} />
           <style>{`
             .rm-template {
@@ -169,11 +173,11 @@ ${templateCss}
                 Salvo {new Date(lastSaved).toLocaleTimeString('pt-BR')}
               </span>
             )}
-            <Button variant="outline" onClick={handlePreview}>
+            <Button variant="outline" onClick={handlePreview} className="transition-all duration-200">
               <Eye className="h-4 w-4 mr-2" />
               Visualizar
             </Button>
-            <Button onClick={save} disabled={saving || !isDirty}>
+            <Button onClick={save} disabled={saving || !isDirty} className="transition-all duration-200">
               {saving ? (
                 <Loader2 className="h-4 w-4 animate-spin mr-2" />
               ) : (
@@ -186,8 +190,8 @@ ${templateCss}
       </div>
 
       <div className="w-full lg:w-72 shrink-0">
-        <div className="rounded-lg border bg-card p-4 space-y-4 sticky top-4">
-          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+        <div className="glass-card rounded-xl p-5 space-y-4 sticky top-4">
+          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">
             Formatação
           </h3>
           <FormattingPanel
