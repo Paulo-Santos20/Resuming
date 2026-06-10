@@ -11,7 +11,7 @@ import { Menu } from 'lucide-react'
 export function DashboardShell({ children }: { children: React.ReactNode }) {
   const { user, profile, loading, logout } = useAuth()
   const router = useRouter()
-  const { sidebarOpen, setSidebarOpen, initDarkMode, initSidebarOpen, toggleSidebar } = useUIStore()
+  const { mobileSidebarOpen, setMobileSidebarOpen, initDarkMode, initSidebarOpen, toggleMobileSidebar } = useUIStore()
 
   useEffect(() => {
     initDarkMode()
@@ -47,15 +47,15 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         userName={profile.name}
         userEmail={profile.email}
         photoURL={profile.photoURL}
-        mobileOpen={sidebarOpen}
-        onMobileClose={() => setSidebarOpen(false)}
+        mobileOpen={mobileSidebarOpen}
+        onMobileClose={() => setMobileSidebarOpen(false)}
       />
 
       {/* Main */}
       <main className="flex-1 overflow-y-auto">
         {/* Mobile top bar */}
         <div className="sticky top-0 z-30 flex items-center gap-3 border-b border-border bg-background/80 px-4 py-3 lg:hidden">
-          <Button variant="ghost" size="icon" onClick={toggleSidebar} aria-label="Abrir menu">
+          <Button variant="ghost" size="icon" onClick={toggleMobileSidebar} aria-label="Abrir menu">
             <Menu className="h-5 w-5" />
           </Button>
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground font-display font-bold text-sm">

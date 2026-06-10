@@ -35,16 +35,20 @@ function applyDarkMode(dark: boolean) {
 
 interface UIState {
   sidebarOpen: boolean
+  mobileSidebarOpen: boolean
   darkMode: boolean
   initDarkMode: () => void
   initSidebarOpen: () => void
   toggleSidebar: () => void
   setSidebarOpen: (open: boolean) => void
+  toggleMobileSidebar: () => void
+  setMobileSidebarOpen: (open: boolean) => void
   toggleDarkMode: () => void
 }
 
 export const useUIStore = create<UIState>((set) => ({
   sidebarOpen: true,
+  mobileSidebarOpen: false,
   darkMode: false,
 
   initDarkMode: () => {
@@ -77,6 +81,11 @@ export const useUIStore = create<UIState>((set) => ({
     }
     set({ sidebarOpen: open })
   },
+
+  toggleMobileSidebar: () =>
+    set((s) => ({ mobileSidebarOpen: !s.mobileSidebarOpen })),
+
+  setMobileSidebarOpen: (open) => set({ mobileSidebarOpen: open }),
 
   toggleDarkMode: () =>
     set((s) => {

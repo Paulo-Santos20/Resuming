@@ -13,6 +13,8 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 from google import genai
 from google.genai import types
+from groq import Groq
+from openai import OpenAI
 from fastapi.responses import Response
 
 from dotenv import load_dotenv
@@ -136,7 +138,7 @@ def get_genai_client(key: Optional[str] = None):
             api_key = response.payload.data.decode("utf-8")
         except Exception:
             pass
-    return genai.Client(api_key=api_key, http_options={"timeout": 60000})
+    return genai.Client(api_key=api_key, http_options={"timeout": 120000})
 
 
 def _is_retryable_error(e: Exception) -> bool:
@@ -160,16 +162,16 @@ def _is_quota_error(e: Exception) -> bool:
 def call_gemini_with_retry(client, model, contents=None, config=None):
     import time
     last_error = None
-    for attempt in range(3):
+    for attempt in range(5):
         try:
             if config:
                 return client.models.generate_content(model=model, contents=contents, config=config)
             return client.models.generate_content(model=model, contents=contents)
         except Exception as e:
             last_error = e
-            if attempt < 2 and _is_retryable_error(e):
-                delay = (2 ** (attempt + 1)) + random.uniform(0, 1)
-                print(f"    [retry] Gemini falhou (tentativa {attempt + 1}/3), tentando novamente em {delay}s: {e}")
+            if attempt < 4 and _is_retryable_error(e):
+                delay = (2 ** (attempt + 2)) + random.uniform(0, 1)
+                print(f"    [retry] Gemini falhou (tentativa {attempt + 1}/5), tentando novamente em {delay:.1f}s: {e}")
                 time.sleep(delay)
             else:
                 raise
@@ -197,6 +199,114 @@ async def call_gemini_async(contents=None, config=None):
     return await loop.run_in_executor(
         None, lambda: call_gemini_with_key_rotation(contents=contents, config=config)
     )
+
+
+GROQ_MODEL = "llama-3.3-70b-versatile"
+
+
+def _get_groq_client():
+    api_key = os.environ.get("GROQ_API_KEY", "")
+    if not api_key:
+        return None
+    return Groq(api_key=api_key)
+
+
+def call_groq(contents=None, system_instruction=None):
+    client = _get_groq_client()
+    if not client:
+        raise ValueError("GROQ_API_KEY não configurada")
+
+    messages = []
+    if system_instruction:
+        messages.append({"role": "system", "content": system_instruction})
+    if isinstance(contents, list):
+        messages.append({"role": "user", "content": "\n".join(str(c) for c in contents)})
+    else:
+        messages.append({"role": "user", "content": str(contents)})
+
+    response = client.chat.completions.create(
+        model=GROQ_MODEL,
+        messages=messages,
+        temperature=0.1,
+        max_tokens=8192,
+        timeout=120,
+    )
+    return response.choices[0].message.content
+
+
+DEEPSEEK_MODEL = "deepseek-chat"
+
+
+def _get_deepseek_client():
+    api_key = os.environ.get("DEEPSEEK_API_KEY", "")
+    if not api_key:
+        return None
+    return OpenAI(api_key=api_key, base_url="https://api.deepseek.com")
+
+
+def call_deepseek(contents=None, system_instruction=None):
+    client = _get_deepseek_client()
+    if not client:
+        raise ValueError("DEEPSEEK_API_KEY não configurada")
+
+    messages = []
+    if system_instruction:
+        messages.append({"role": "system", "content": system_instruction})
+    if isinstance(contents, list):
+        messages.append({"role": "user", "content": "\n".join(str(c) for c in contents)})
+    else:
+        messages.append({"role": "user", "content": str(contents)})
+
+    response = client.chat.completions.create(
+        model=DEEPSEEK_MODEL,
+        messages=messages,
+        temperature=0.1,
+        max_tokens=8192,
+        timeout=120,
+    )
+    return response.choices[0].message.content
+
+
+def _extract_system_instruction(config):
+    if config and hasattr(config, 'system_instruction'):
+        return config.system_instruction
+    return None
+
+
+class FallbackResponse:
+    def __init__(self, text):
+        self.text = text
+
+
+async def call_with_fallback(contents=None, config=None):
+    system_instruction = _extract_system_instruction(config)
+
+    # 1 — Tenta Gemini
+    try:
+        return await call_gemini_async(contents=contents, config=config)
+    except Exception as e:
+        print(f"    [fallback] Gemini falhou após todas as tentativas: {e}")
+
+    # 2 — Tenta Groq
+    print(f"    [fallback] Tentando Groq ({GROQ_MODEL})...")
+    try:
+        text = await asyncio.get_event_loop().run_in_executor(
+            None, lambda: call_groq(contents=contents, system_instruction=system_instruction)
+        )
+        return FallbackResponse(text)
+    except Exception as e:
+        print(f"    [fallback] Groq também falhou: {e}")
+
+    # 3 — Tenta DeepSeek
+    print(f"    [fallback] Tentando DeepSeek ({DEEPSEEK_MODEL})...")
+    try:
+        text = await asyncio.get_event_loop().run_in_executor(
+            None, lambda: call_deepseek(contents=contents, system_instruction=system_instruction)
+        )
+        return FallbackResponse(text)
+    except Exception as e:
+        print(f"    [fallback] DeepSeek também falhou: {e}")
+        raise
 
 
 class ParseResumeRequest(BaseModel):
@@ -431,11 +541,11 @@ Texto do currículo:
 
 Retorne APENAS o JSON, sem formatação markdown."""
 
-        response = await call_gemini_async(
+        response = await call_with_fallback(
             contents=[prompt],
         )
 
-        print(f"[parse-resume] Gemini response ({len(response.text)} chars)")
+        print(f"[parse-resume] Resposta IA ({len(response.text)} chars)")
 
         data = extract_json_from_response(response.text)
         data = normalizar_resume_data(data)
@@ -452,7 +562,7 @@ async def debug_gemini():
     if os.environ.get("DEBUG_MODE") != "true":
         raise HTTPException(status_code=404, detail="Not found")
     try:
-        response = await call_gemini_async(
+        response = await call_with_fallback(
             contents=["Responda apenas: OK"],
         )
         return {"status": "ok", "text": response.text}
@@ -486,7 +596,7 @@ Formato HTML esperado:
 - NUNCA use primeira pessoa ("eu fiz", "minha experiência"). Escreva de forma impessoal: "Gestão de equipe…", "Desenvolvimento de…" em vez de "Eu gerenciei…"
 - Retorne APENAS o HTML, sem formatação markdown"""
 
-        response = await call_gemini_async(
+        response = await call_with_fallback(
             config=types.GenerateContentConfig(
                 system_instruction=RESUME_SYSTEM_PROMPT,
             ),
@@ -519,7 +629,7 @@ Texto extraído:
 
 Retorne APENAS o JSON, sem formatação markdown."""
 
-        response = await call_gemini_async(
+        response = await call_with_fallback(
             contents=[prompt],
         )
 
@@ -569,7 +679,7 @@ Currículo (HTML):
 Retorne um JSON com subject e body.
 Exemplo: {{"subject": "Candidatura — Engenheiro de Software Sênior", "body": "<p>...</p>"}}"""
 
-        response = await call_gemini_async(
+        response = await call_with_fallback(
             config=types.GenerateContentConfig(
                 system_instruction=EMAIL_SYSTEM_PROMPT,
             ),

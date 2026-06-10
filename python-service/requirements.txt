@@ -8,6 +8,8 @@ Pillow==11.1.0
 pydantic==2.10.4
 python-multipart==0.0.20
 google-cloud-secret-manager==2.21.0
+groq==0.15.0
+openai==1.68.0
 paddlepaddle==3.0.0b2
 paddleocr==2.9.1
 PyMuPDF==1.25.4
