@@ -240,13 +240,7 @@ export function Sidebar({ onLogout, userName, userEmail, photoURL, mobileOpen, o
 
       {/* Mobile overlay */}
       {mobileOpen && (
-        <>
-          <div
-            className="fixed inset-0 z-40 bg-black/50"
-            onClick={onMobileClose}
-            aria-hidden="true"
-          />
-          <aside
+        <aside
             role="dialog"
             aria-modal="true"
             aria-label="Menu de navegação"
@@ -259,7 +253,6 @@ export function Sidebar({ onLogout, userName, userEmail, photoURL, mobileOpen, o
           >
             {sidebarContent()}
           </aside>
-        </>
       )}
     </>
   )
