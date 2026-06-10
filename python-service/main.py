@@ -16,6 +16,7 @@ from google.genai import types
 from groq import Groq
 from openai import OpenAI
 from fastapi.responses import Response
+from fastapi.middleware.cors import CORSMiddleware
 
 from dotenv import load_dotenv
 dotenv_path = os.path.join(os.path.dirname(__file__), '..', '.env.local')
@@ -23,6 +24,17 @@ if os.path.exists(dotenv_path):
     load_dotenv(dotenv_path)
 
 app = FastAPI(title="Resuming - Python Service")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000",
+        "https://resuming-seven.vercel.app",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 _firebase_initialized = False
 
