@@ -53,7 +53,11 @@ def init_firebase():
             return True
 
         client_email = os.environ.get("FIREBASE_ADMIN_CLIENT_EMAIL")
-        private_key = os.environ.get("FIREBASE_ADMIN_PRIVATE_KEY", "").replace("\\n", "\n").strip('"').strip("'")
+        raw_key = os.environ.get("FIREBASE_ADMIN_PRIVATE_KEY", "")
+        import base64
+        if raw_key.startswith("LS0t") or (len(raw_key) > 200 and all(c in "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=" for c in raw_key.strip())):
+            raw_key = base64.b64decode(raw_key).decode("utf-8")
+        private_key = raw_key.replace("\\n", "\n").strip('"').strip("'")
         project_id = os.environ.get("NEXT_PUBLIC_FIREBASE_PROJECT_ID")
 
         if client_email and private_key:
