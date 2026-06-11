@@ -546,13 +546,29 @@ async def debug_firebase():
         if raw_key.startswith("LS0t"):
             decoded = base64.b64decode(raw_key).decode("utf-8")
             final_key = decoded.replace("\\n", "\n").strip('"').strip("'")
-            from cryptography.hazmat.primitives import serialization
-            from cryptography.hazmat.primitives.asymmetric import rsa
+            lines = final_key.split("\n")
+            # Check PEM structure
+            body_b64 = "".join(lines[1:-1])
             try:
-                key = serialization.load_pem_private_key(final_key.encode(), password=None)
-                return {"key_valid": True, "key_type": type(key).__name__}
+                body_bytes = base64.b64decode(body_b64)
+                return {
+                    "key_valid_try": True,
+                    "pem_line_count": len(lines),
+                    "body_b64_valid": True,
+                    "body_bytes_len": len(body_bytes),
+                    "header": lines[0],
+                    "footer": lines[-2] if lines[-1] == "" else lines[-1],
+                }
             except Exception as e:
-                return {"key_valid": False, "decoding_error": str(e), "key_preview": final_key[:200] + "..."}
+                return {
+                    "key_valid_try": False,
+                    "pem_line_count": len(lines),
+                    "body_b64_valid": False,
+                    "body_decode_error": str(e),
+                    "header": lines[0],
+                    "footer": lines[-2] if lines[-1] == "" else lines[-1],
+                    "body_preview": body_b64[:100],
+                }
         else:
             return {"key_valid": False, "error": "key does not start with LS0t"}
     except Exception as e:
