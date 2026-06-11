@@ -548,19 +548,34 @@ async def debug_env():
     has_private_key = bool(os.environ.get("FIREBASE_ADMIN_PRIVATE_KEY"))
     has_project_id = bool(os.environ.get("NEXT_PUBLIC_FIREBASE_PROJECT_ID"))
     raw_key = os.environ.get("FIREBASE_ADMIN_PRIVATE_KEY", "")
-    return {
+    result = {
         "has_gemini": has_gemini,
         "has_groq": has_groq,
         "has_deepseek": has_deepseek,
         "has_client_email": has_client_email,
         "has_private_key": has_private_key,
         "has_project_id": has_project_id,
-    "private_key_preview": raw_key[:80] if raw_key else "(empty)",
-    "private_key_len": len(raw_key) if raw_key else 0,
-    "private_key_is_base64": raw_key.startswith("LS0t"),
-    "firebase_initialized": _firebase_initialized,
-    "firebase_error": _firebase_init_error,
-}
+        "private_key_preview": raw_key[:80] if raw_key else "(empty)",
+        "private_key_len": len(raw_key) if raw_key else 0,
+        "private_key_is_base64": raw_key.startswith("LS0t"),
+        "firebase_initialized": _firebase_initialized,
+        "firebase_error": _firebase_init_error,
+    }
+    if raw_key and _firebase_init_error:
+        try:
+            import base64
+            decoded = base64.b64decode(raw_key).decode("utf-8")
+            result["after_b64_decode_len"] = len(decoded)
+            result["after_b64_decode_preview"] = decoded[:200]
+            result["has_literal_backslash_n"] = "\\n" in decoded
+            fixed = decoded.replace("\\n", "\n").strip()
+            result["after_replace_len"] = len(fixed)
+            result["after_replace_preview"] = fixed[:200]
+            result["has_newlines"] = "\n" in fixed
+            result["pem_valid"] = fixed.startswith("-----BEGIN") and "-----END" in fixed
+        except Exception as e:
+            result["debug_error"] = str(e)
+    return result
 
 
 @app.post("/parse-resume")
