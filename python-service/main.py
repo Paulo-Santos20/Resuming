@@ -538,6 +538,26 @@ def validate_image_dimensions(image) -> None:
 async def health():
     return {"status": "ok"}
 
+@app.get("/debug/firebase")
+async def debug_firebase():
+    raw_key = os.environ.get("FIREBASE_ADMIN_PRIVATE_KEY", "")
+    import base64
+    try:
+        if raw_key.startswith("LS0t"):
+            decoded = base64.b64decode(raw_key).decode("utf-8")
+            final_key = decoded.replace("\\n", "\n").strip('"').strip("'")
+            from cryptography.hazmat.primitives import serialization
+            from cryptography.hazmat.primitives.asymmetric import rsa
+            try:
+                key = serialization.load_pem_private_key(final_key.encode(), password=None)
+                return {"key_valid": True, "key_type": type(key).__name__}
+            except Exception as e:
+                return {"key_valid": False, "decoding_error": str(e), "key_preview": final_key[:200] + "..."}
+        else:
+            return {"key_valid": False, "error": "key does not start with LS0t"}
+    except Exception as e:
+        return {"key_valid": False, "error": str(e), "trace": traceback.format_exc()[:500]}
+
 @app.get("/debug/env")
 async def debug_env():
     has_gemini = bool(os.environ.get("GEMINI_API_KEY"))
