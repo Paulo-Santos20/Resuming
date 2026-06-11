@@ -46,29 +46,30 @@ def init_firebase():
     try:
         import firebase_admin
         from firebase_admin import credentials
-        key_path = os.environ.get("FIREBASE_ADMIN_KEY_PATH")
-        if key_path and os.path.exists(key_path):
-            cred = credentials.Certificate(key_path)
-            firebase_admin.initialize_app(cred)
-            _firebase_initialized = True
-            return True
+        import tempfile, json
 
         client_email = os.environ.get("FIREBASE_ADMIN_CLIENT_EMAIL")
         raw_key = os.environ.get("FIREBASE_ADMIN_PRIVATE_KEY", "")
-        import base64
-        if raw_key.startswith("LS0t") or (len(raw_key) > 200 and all(c in "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=" for c in raw_key.strip())):
-            raw_key = base64.b64decode(raw_key).decode("utf-8")
-        private_key = raw_key.replace("\\n", "\n").strip('"').strip("'")
         project_id = os.environ.get("NEXT_PUBLIC_FIREBASE_PROJECT_ID")
 
-        if client_email and private_key:
-            cred = credentials.Certificate({
+        if client_email and raw_key and project_id:
+            import base64
+            if raw_key.startswith("LS0t"):
+                raw_key = base64.b64decode(raw_key).decode("utf-8")
+            private_key = raw_key.replace("\\n", "\n").strip()
+
+            cred_dict = {
                 "type": "service_account",
                 "client_email": client_email,
                 "private_key": private_key,
                 "project_id": project_id,
                 "token_uri": "https://oauth2.googleapis.com/token",
-            })
+            }
+
+            tmp = tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False)
+            json.dump(cred_dict, tmp)
+            tmp.close()
+            cred = credentials.Certificate(tmp.name)
             firebase_admin.initialize_app(cred)
             _firebase_initialized = True
             return True
@@ -537,42 +538,6 @@ def validate_image_dimensions(image) -> None:
 @app.get("/health")
 async def health():
     return {"status": "ok"}
-
-@app.get("/debug/firebase")
-async def debug_firebase():
-    raw_key = os.environ.get("FIREBASE_ADMIN_PRIVATE_KEY", "")
-    import base64
-    try:
-        if raw_key.startswith("LS0t"):
-            decoded = base64.b64decode(raw_key).decode("utf-8")
-            final_key = decoded.replace("\\n", "\n").strip('"').strip("'")
-            lines = final_key.split("\n")
-            # Check PEM structure
-            body_b64 = "".join(lines[1:-1])
-            try:
-                body_bytes = base64.b64decode(body_b64)
-                return {
-                    "key_valid_try": True,
-                    "pem_line_count": len(lines),
-                    "body_b64_valid": True,
-                    "body_bytes_len": len(body_bytes),
-                    "header": lines[0],
-                    "footer": lines[-2] if lines[-1] == "" else lines[-1],
-                }
-            except Exception as e:
-                return {
-                    "key_valid_try": False,
-                    "pem_line_count": len(lines),
-                    "body_b64_valid": False,
-                    "body_decode_error": str(e),
-                    "header": lines[0],
-                    "footer": lines[-2] if lines[-1] == "" else lines[-1],
-                    "body_preview": body_b64[:100],
-                }
-        else:
-            return {"key_valid": False, "error": "key does not start with LS0t"}
-    except Exception as e:
-        return {"key_valid": False, "error": str(e), "trace": traceback.format_exc()[:500]}
 
 @app.get("/debug/env")
 async def debug_env():
