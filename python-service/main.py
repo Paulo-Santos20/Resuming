@@ -536,6 +536,27 @@ def validate_image_dimensions(image) -> None:
 async def health():
     return {"status": "ok"}
 
+@app.get("/debug/env")
+async def debug_env():
+    has_gemini = bool(os.environ.get("GEMINI_API_KEY"))
+    has_groq = bool(os.environ.get("GROQ_API_KEY"))
+    has_deepseek = bool(os.environ.get("DEEPSEEK_API_KEY"))
+    has_client_email = bool(os.environ.get("FIREBASE_ADMIN_CLIENT_EMAIL"))
+    has_private_key = bool(os.environ.get("FIREBASE_ADMIN_PRIVATE_KEY"))
+    has_project_id = bool(os.environ.get("NEXT_PUBLIC_FIREBASE_PROJECT_ID"))
+    raw_key = os.environ.get("FIREBASE_ADMIN_PRIVATE_KEY", "")
+    return {
+        "has_gemini": has_gemini,
+        "has_groq": has_groq,
+        "has_deepseek": has_deepseek,
+        "has_client_email": has_client_email,
+        "has_private_key": has_private_key,
+        "has_project_id": has_project_id,
+        "private_key_preview": raw_key[:80] if raw_key else "(empty)",
+        "private_key_is_base64": raw_key.startswith("LS0t"),
+        "firebase_initialized": _firebase_initialized,
+    }
+
 
 @app.post("/parse-resume")
 async def parse_resume(req: ParseResumeRequest, uid: str = Depends(require_auth)):
