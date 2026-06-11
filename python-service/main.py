@@ -554,11 +554,12 @@ async def debug_env():
         "has_client_email": has_client_email,
         "has_private_key": has_private_key,
         "has_project_id": has_project_id,
-        "private_key_preview": raw_key[:80] if raw_key else "(empty)",
-        "private_key_is_base64": raw_key.startswith("LS0t"),
-        "firebase_initialized": _firebase_initialized,
-        "firebase_error": _firebase_init_error,
-    }
+    "private_key_preview": raw_key[:80] if raw_key else "(empty)",
+    "private_key_len": len(raw_key) if raw_key else 0,
+    "private_key_is_base64": raw_key.startswith("LS0t"),
+    "firebase_initialized": _firebase_initialized,
+    "firebase_error": _firebase_init_error,
+}
 
 
 @app.post("/parse-resume")
