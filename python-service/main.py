@@ -37,9 +37,10 @@ app.add_middleware(
 )
 
 _firebase_initialized = False
+_firebase_init_error = ""
 
 def init_firebase():
-    global _firebase_initialized
+    global _firebase_initialized, _firebase_init_error
     if _firebase_initialized:
         return True
     try:
@@ -76,7 +77,8 @@ def init_firebase():
         _firebase_initialized = True
         return True
     except Exception as e:
-        print(f"[init_firebase] ERRO: {e}")
+        _firebase_init_error = f"{type(e).__name__}: {e}"
+        print(f"[Firebase] init error: {_firebase_init_error}")
         return False
 
 def verify_firebase_token(authorization: Optional[str]) -> Optional[str]:
@@ -555,6 +557,7 @@ async def debug_env():
         "private_key_preview": raw_key[:80] if raw_key else "(empty)",
         "private_key_is_base64": raw_key.startswith("LS0t"),
         "firebase_initialized": _firebase_initialized,
+        "firebase_error": _firebase_init_error,
     }
 
 
