@@ -56,7 +56,9 @@ def init_firebase():
             import base64
             if raw_key.startswith("LS0t"):
                 raw_key = base64.b64decode(raw_key).decode("utf-8")
-            private_key = raw_key.replace("\\n", "\n").strip()
+            if "\\n" in raw_key:
+                raw_key = raw_key.replace("\\n", "\n")
+            private_key = raw_key.strip()
 
             cred_dict = {
                 "type": "service_account",
@@ -274,39 +276,6 @@ def call_groq(contents=None, system_instruction=None):
     return response.choices[0].message.content
 
 
-DEEPSEEK_MODEL = "deepseek-chat"
-
-
-def _get_deepseek_client():
-    api_key = os.environ.get("DEEPSEEK_API_KEY", "")
-    if not api_key:
-        return None
-    return OpenAI(api_key=api_key, base_url="https://api.deepseek.com")
-
-
-def call_deepseek(contents=None, system_instruction=None):
-    client = _get_deepseek_client()
-    if not client:
-        raise ValueError("DEEPSEEK_API_KEY não configurada")
-
-    messages = []
-    if system_instruction:
-        messages.append({"role": "system", "content": system_instruction})
-    if isinstance(contents, list):
-        messages.append({"role": "user", "content": "\n".join(str(c) for c in contents)})
-    else:
-        messages.append({"role": "user", "content": str(contents)})
-
-    response = client.chat.completions.create(
-        model=DEEPSEEK_MODEL,
-        messages=messages,
-        temperature=0.1,
-        max_tokens=8192,
-        timeout=120,
-    )
-    return response.choices[0].message.content
-
-
 def _extract_system_instruction(config):
     if config and hasattr(config, 'system_instruction'):
         return config.system_instruction
@@ -321,13 +290,11 @@ class FallbackResponse:
 async def call_with_fallback(contents=None, config=None):
     system_instruction = _extract_system_instruction(config)
 
-    # 1 — Tenta Gemini
     try:
         return await call_gemini_async(contents=contents, config=config)
     except Exception as e:
         print(f"    [fallback] Gemini falhou após todas as tentativas: {e}")
 
-    # 2 — Tenta Groq
     print(f"    [fallback] Tentando Groq ({GROQ_MODEL})...")
     try:
         text = await asyncio.get_event_loop().run_in_executor(
@@ -336,16 +303,6 @@ async def call_with_fallback(contents=None, config=None):
         return FallbackResponse(text)
     except Exception as e:
         print(f"    [fallback] Groq também falhou: {e}")
-
-    # 3 — Tenta DeepSeek
-    print(f"    [fallback] Tentando DeepSeek ({DEEPSEEK_MODEL})...")
-    try:
-        text = await asyncio.get_event_loop().run_in_executor(
-            None, lambda: call_deepseek(contents=contents, system_instruction=system_instruction)
-        )
-        return FallbackResponse(text)
-    except Exception as e:
-        print(f"    [fallback] DeepSeek também falhou: {e}")
         raise
 
 
@@ -543,7 +500,6 @@ async def health():
 async def debug_env():
     has_gemini = bool(os.environ.get("GEMINI_API_KEY"))
     has_groq = bool(os.environ.get("GROQ_API_KEY"))
-    has_deepseek = bool(os.environ.get("DEEPSEEK_API_KEY"))
     has_client_email = bool(os.environ.get("FIREBASE_ADMIN_CLIENT_EMAIL"))
     has_private_key = bool(os.environ.get("FIREBASE_ADMIN_PRIVATE_KEY"))
     has_project_id = bool(os.environ.get("NEXT_PUBLIC_FIREBASE_PROJECT_ID"))
@@ -551,7 +507,6 @@ async def debug_env():
     result = {
         "has_gemini": has_gemini,
         "has_groq": has_groq,
-        "has_deepseek": has_deepseek,
         "has_client_email": has_client_email,
         "has_private_key": has_private_key,
         "has_project_id": has_project_id,
