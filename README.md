@@ -1,6 +1,8 @@
 # Resuming
 
-Aplicação web para criar currículos otimizados para cada vaga com IA.
+Cria currículos otimizados para cada vaga com IA.
+
+**Live:** https://resuming-seven.vercel.app
 
 ## Stack
 
@@ -9,49 +11,71 @@ Aplicação web para criar currículos otimizados para cada vaga com IA.
 - **Auth:** Firebase Authentication (Google Provider)
 - **Database:** Firestore
 - **Storage:** Firebase Storage
-- **AI:** Google Gemini (via google-genai SDK com retry automático)
-- **OCR:** PaddleOCR PP-StructureV3
+- **AI:** Google Gemini (primário) → Groq Llama 3.3 70B (fallback gratuito)
+- **OCR:** PaddleOCR (imagens) + PyMuPDF (PDFs com camada de texto)
 - **PDF:** WeasyPrint (HTML → PDF)
-- **Email:** Gmail API
+- **Email:** Gmail API (via OAuth do próprio usuário)
 
 ## Pré-requisitos
 
 - Node.js 20+
 - Python 3.12+
 - Conta Firebase (Auth + Firestore + Storage)
-- Conta Google Cloud (Cloud Run, Secret Manager)
-- API Key Gemini
+- Conta Google Cloud (Cloud Run)
+- Chave Gemini AI (gratuita no Google AI Studio)
 
-## Setup
+## Desenvolvimento local
 
 ```bash
-# Instalar dependências
+# Frontend
 npm install
-
-# Copiar env e preencher
 cp .env.example .env.local
-
-# Desenvolvimento
 npm run dev
-```
 
-## Variáveis de Ambiente
-
-Veja `.env.example` para todas as variáveis necessárias.
-
-## Python Service
-
-### Local
-```bash
+# Python service (em outro terminal)
 cd python-service
 pip install -r requirements.txt
 uvicorn main:app --reload --port 8000
 ```
 
-### Deploy (Cloud Run)
+## Variáveis de Ambiente
+
+Veja `.env.example` para a lista completa.
+
+## Python Service
+
+### Arquitetura de fallback
+
+O serviço tenta primeiro o Gemini (com rotação entre múltiplas chaves). Se todas esgotarem, cai para Groq (gratuito, via `llama-3.3-70b-versatile`).
+
+### Deploy
+
+O deploy automático via Cloud Build é ativado ao fazer push na branch `main`:
+
+```bash
+git push origin main
+```
+
+O arquivo `cloudbuild.yaml` na raiz do repositório coordena:
+1. Build da imagem Docker em `python-service/`
+2. Push para Artifact Registry
+3. Deploy no Cloud Run
+
+Para deploy manual:
+
 ```bash
 bash python-service/deploy.sh
 ```
+
+### Rotas da API
+
+| Rota | Descrição |
+|---|---|
+| `POST /parse-resume` | Extrai dados estruturados de um currículo (OCR + IA) |
+| `POST /edit-resume` | Adapta currículo para uma vaga específica |
+| `POST /generate-pdf` | Gera PDF do currículo via WeasyPrint |
+| `POST /generate-email` | Gera e-mail profissional de candidatura |
+| `POST /ocr-job` | Extrai texto de descrição de vaga |
 
 ## Estrutura
 
@@ -75,13 +99,12 @@ src/
 python-service/
 ├── main.py           # FastAPI (parse, edit, OCR, PDF, email)
 ├── Dockerfile        # Container para Cloud Run
-├── deploy.sh         # Deploy script
-└── requirements.txt  # Python dependencies
+├── cloudbuild.yaml   # CI/CD (raiz do projeto)
+├── deploy.sh         # Deploy manual
+└── requirements.txt  # Dependências Python
 ```
 
 ## Firebase Storage Rules
-
-O arquivo `storage.rules` na raiz deve ser deployado para o Firebase:
 
 ```bash
 npx firebase deploy --only storage
