@@ -49,6 +49,7 @@ export function useResumeEditor({
     extensions: [
       StarterKit.configure({
         heading: { levels: [1, 2, 3] },
+        underline: false,
       }),
       Underline,
       TextAlign.configure({ types: ['heading', 'paragraph'] }),

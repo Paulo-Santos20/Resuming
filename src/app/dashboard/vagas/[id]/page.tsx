@@ -133,14 +133,16 @@ export default function VagaDetalhePage() {
         setVersionAts(atsResult.value)
         sessionStorage.setItem(`edited-${job.id}-ats`, atsResult.value)
       } else {
-        toastError('Versão ATS falhou', atsResult.reason?.message || 'Erro ao gerar')
+        const msg = atsResult.reason instanceof Error ? atsResult.reason.message : String(atsResult.reason || 'Erro ao gerar')
+        toastError('Versão ATS falhou', msg)
       }
 
       if (originalResult.status === 'fulfilled') {
         setVersionOriginal(originalResult.value)
         sessionStorage.setItem(`edited-${job.id}-original`, originalResult.value)
       } else {
-        toastError('Versão Original falhou', originalResult.reason?.message || 'Erro ao gerar')
+        const msg = originalResult.reason instanceof Error ? originalResult.reason.message : String(originalResult.reason || 'Erro ao gerar')
+        toastError('Versão Original falhou', msg)
       }
 
       if (atsResult.status === 'fulfilled' || originalResult.status === 'fulfilled') {

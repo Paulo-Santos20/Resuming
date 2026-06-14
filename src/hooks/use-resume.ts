@@ -162,7 +162,10 @@ export function useResume(userId: string | undefined) {
             templateType,
           }),
         })
-        if (!response.ok) throw new Error('Erro ao editar currículo')
+        if (!response.ok) {
+          const errBody = await response.json().catch(() => ({ error: 'Erro ao editar currículo' }))
+          throw new Error(errBody.detail || errBody.error || 'Erro ao editar currículo')
+        }
         const { html } = await response.json()
 
         const versionsRef = collection(getDbInstance(), 'users', userId, 'resumes', resumeId, 'versions')

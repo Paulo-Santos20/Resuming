@@ -15,6 +15,7 @@ export async function POST(request: NextRequest) {
     const response = await fetch(`${PYTHON_SERVICE_URL}/edit-resume`, {
       method: 'POST',
       headers: forwardAuth(request),
+      signal: AbortSignal.timeout(60000),
       body: JSON.stringify({
         resumeData: parsed.resumeData,
         jobDescription: sanitizeHtml(parsed.jobDescription),
