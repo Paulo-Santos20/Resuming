@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ArrowLeft, Save, Eye, Download, Check, Edit3, Loader2 } from 'lucide-react'
 import { toastSuccess, toastError } from '@/lib/toast'
+import { usePageTitle } from '@/hooks/use-page-title'
 import { sanitizeHtml } from '@/lib/sanitize'
 import { renderResumeDataToHtml } from '@/lib/render-resume-data'
 import { cn } from '@/lib/utils'
@@ -51,7 +52,7 @@ export default function EditarCurriculoPage() {
   const [selectedVersion, setSelectedVersion] = useState<VersionKey | null>(null)
   const [resumeId, setResumeId] = useState<string>('temp')
 
-  useEffect(() => { document.title = 'Editar Currículo — Resuming' }, [])
+  usePageTitle('Editar Currículo')
 
   // Load job
   useEffect(() => {
@@ -137,7 +138,10 @@ export default function EditarCurriculoPage() {
 
   const openPreview = useCallback((html: string) => {
     const pw = window.open('', 'rm-preview')
-    if (!pw) return
+    if (!pw) {
+      toastError('Popup bloqueado', 'Permita popups para visualizar ou use o botão de download PDF')
+      return
+    }
     pw.document.write(`<!DOCTYPE html>
 <html lang="pt-BR">
 <head><meta charset="utf-8"><title>Pré-visualização</title>

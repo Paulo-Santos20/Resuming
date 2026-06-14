@@ -3,25 +3,35 @@
 import Link from 'next/link'
 import { useAuth } from '@/hooks/use-auth'
 import { useResume } from '@/hooks/use-resume'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ResumeUpload } from '@/components/resume/resume-upload'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
-import { Eye, Trash2, Clock, Edit3 } from 'lucide-react'
+import { Eye, Trash2, Clock, Edit3, Search } from 'lucide-react'
+import { toastError } from '@/lib/toast'
+import { usePageTitle } from '@/hooks/use-page-title'
 
 export default function CurriculoPage() {
   const { user } = useAuth()
   const { resumes, loading, uploadResume, fetchResumes, deleteResume } = useResume(user?.uid)
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
+  const [search, setSearch] = useState('')
 
-  useEffect(() => { document.title = 'Currículo — Resuming' }, [])
+  usePageTitle('Currículo')
 
   useEffect(() => {
-    if (user?.uid) fetchResumes()
+    if (user?.uid) {
+      try {
+        fetchResumes()
+      } catch {
+        toastError('Erro ao carregar currículos')
+      }
+    }
   }, [user?.uid, fetchResumes])
 
   const handleDelete = async () => {
@@ -34,6 +44,12 @@ export default function CurriculoPage() {
       setDeleteId(null)
     }
   }
+
+  const filtered = useMemo(() => {
+    if (!search.trim()) return resumes
+    const q = search.toLowerCase()
+    return resumes.filter((r) => r.originalFileName.toLowerCase().includes(q))
+  }, [resumes, search])
 
   const resumeToDelete = deleteId ? resumes.find((r) => r.id === deleteId) : null
 
@@ -56,21 +72,32 @@ export default function CurriculoPage() {
       </Card>
 
       <div className="space-y-4">
-        <h2 className="font-display text-lg font-semibold">Versões</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="font-display text-lg font-semibold">Versões</h2>
+          <div className="relative w-64">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar por nome do arquivo…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9 h-9 text-sm"
+            />
+          </div>
+        </div>
         {loading ? (
           <div className="space-y-3">
             {[1, 2].map((i) => (
               <Skeleton key={i} className="h-16 w-full rounded-lg" />
             ))}
           </div>
-        ) : resumes.length === 0 ? (
+        ) : filtered.length === 0 ? (
           <div className="text-center py-12 text-muted-foreground rounded-lg border bg-card">
             <p>Nenhum currículo enviado ainda.</p>
             <p className="text-sm mt-1">Faça upload do seu PDF acima.</p>
           </div>
         ) : (
           <div className="space-y-3">
-            {resumes.map((resume) => (
+            {filtered.map((resume) => (
               <div
                 key={resume.id}
                 className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-lg border p-4 bg-card"
@@ -109,7 +136,8 @@ export default function CurriculoPage() {
                         const url = resume.downloadURL || (
                           `https://firebasestorage.googleapis.com/v0/b/${process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET}/o/${encodeURIComponent(resume.storagePath)}?alt=media`
                         )
-                        window.open(url, '_blank')
+                        const pw = window.open(url, '_blank')
+                        if (!pw) toastError('Popup bloqueado', 'Permita popups para visualizar ou use Ctrl+C para copiar o link')
                       }}
                     >
                       <Eye className="h-4 w-4" />

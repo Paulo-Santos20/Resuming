@@ -6,10 +6,11 @@ import StarterKit from '@tiptap/starter-kit'
 import Underline from '@tiptap/extension-underline'
 import TextAlign from '@tiptap/extension-text-align'
 import FontFamily from '@tiptap/extension-font-family'
-import { doc, updateDoc, addDoc, collection, query, orderBy, getDocs, limit } from 'firebase/firestore'
+import { doc, updateDoc, setDoc, collection, serverTimestamp } from 'firebase/firestore'
 import { getDbInstance } from '@/lib/firebase'
 import { useAuth } from '@/hooks/use-auth'
-import { toastSuccess } from '@/lib/toast'
+import { toastSuccess, toastError } from '@/lib/toast'
+import { sanitizeHtml } from '@/lib/sanitize'
 import type { ResumeFormatting, TemplateStyle } from '@/types/editor'
 import { DEFAULT_FORMATTING } from '@/types/editor'
 
@@ -71,39 +72,30 @@ export function useResumeEditor({
     if (!user?.uid || !editor) return
     setSaving(true)
     try {
-      const html = editor.getHTML()
+      const rawHtml = editor.getHTML()
+      const html = sanitizeHtml(rawHtml)
       const db = getDbInstance()
       const currentFormatting = formattingRef.current
       const currentTemplate = templateRef.current
 
       sessionStorage.setItem(`edited-${jobId}`, html)
 
-      const resumeRef = doc(db, 'users', user.uid, 'resumes', resumeId)
-      const versionsRef = collection(resumeRef, 'versions')
+      const versionRef = doc(collection(db, 'users', user.uid, 'resumes', resumeId, 'versions'))
+      await setDoc(versionRef, {
+        resumeId,
+        jobId: jobId || '',
+        jobTitle: '',
+        content: html,
+        templateType: 'ats',
+        templateStyle: currentTemplate,
+        formatting: currentFormatting,
+        versionNumber: Date.now(),
+        createdAt: serverTimestamp(),
+      })
 
-      if (versionId) {
-        await updateDoc(doc(versionsRef, versionId), {
-          content: html,
-          templateStyle: currentTemplate,
-          formatting: currentFormatting,
-          updatedAt: Date.now(),
-        })
-      } else {
-        const q = query(versionsRef, orderBy('versionNumber', 'desc'), limit(1))
-        const snap = await getDocs(q)
-        const nextVersion = snap.docs.length > 0
-          ? (snap.docs[0].data().versionNumber || 0) + 1
-          : 1
-        await addDoc(versionsRef, {
-          resumeId,
-          jobId,
-          jobTitle: '',
-          content: html,
-          templateStyle: currentTemplate,
-          formatting: currentFormatting,
-          templateType: 'original',
-          versionNumber: nextVersion,
-          createdAt: Date.now(),
+      if (jobId) {
+        await updateDoc(doc(db, 'users', user.uid, 'jobs', jobId), {
+          status: 'edited',
         })
       }
 
@@ -112,10 +104,11 @@ export function useResumeEditor({
       toastSuccess('Alterações salvas')
     } catch (err) {
       console.error('Save error:', err)
+      toastError('Erro ao salvar', err instanceof Error ? err.message : 'Erro desconhecido')
     } finally {
       setSaving(false)
     }
-  }, [user?.uid, resumeId, jobId, versionId, editor])
+  }, [user?.uid, resumeId, jobId, editor])
 
   return {
     editor,

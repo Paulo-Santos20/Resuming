@@ -6,6 +6,7 @@ import { useAuth } from '@/hooks/use-auth'
 import { useRouter } from 'next/navigation'
 import { useUIStore } from '@/stores/ui-store'
 import { Button } from '@/components/ui/button'
+import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { Menu } from 'lucide-react'
 
 export function DashboardShell({ children }: { children: React.ReactNode }) {
@@ -31,8 +32,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
         <div className="glass-card rounded-xl flex flex-col items-center gap-4 px-8 py-12">
-          <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent" role="status" aria-label="Carregando" />
-          <p className="text-sm text-muted-foreground">Carregando…</p>
+          <LoadingSpinner size="lg" label="Carregando…" />
         </div>
       </div>
     )

@@ -17,6 +17,7 @@ import Link from 'next/link'
 import { cn } from '@/lib/utils'
 import { sanitizeHtml } from '@/lib/sanitize'
 import { toastError, toastSuccess } from '@/lib/toast'
+import { usePageTitle } from '@/hooks/use-page-title'
 import type { JobDescription, Resume } from '@/types'
 
 const GenerateButton = memo(function GenerateButton({
@@ -69,7 +70,7 @@ export default function VagaDetalhePage() {
   const [generating, setGenerating] = useState(false)
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => { document.title = job ? `${job.title} — Resuming` : 'Vaga — Resuming' }, [job])
+  usePageTitle(job ? job.title : 'Vaga')
 
   useEffect(() => {
     if (user?.uid) fetchResumes()
@@ -98,11 +99,16 @@ export default function VagaDetalhePage() {
     }
   }, [resumes, selectedResumeId])
 
+  function validateVersionType(value: string | null): 'ats' | 'original' | null {
+    if (value === 'ats' || value === 'original') return value
+    return null
+  }
+
   useEffect(() => {
     if (job && id) {
       const ats = sessionStorage.getItem(`edited-${id}-ats`)
       const original = sessionStorage.getItem(`edited-${id}-original`)
-      const chosen = sessionStorage.getItem(`chosen-${id}`) as 'ats' | 'original' | null
+      const chosen = validateVersionType(sessionStorage.getItem(`chosen-${id}`))
       if (ats) setVersionAts(ats)
       if (original) setVersionOriginal(original)
       if (chosen) setChosenVersion(chosen)
@@ -116,17 +122,35 @@ export default function VagaDetalhePage() {
     const versionId = `version-${selectedResumeId}-${job.id}-${Date.now()}`
     processing.register(versionId, 'Gerando 2 versões…')
     try {
-      const [atsHtml, originalHtml] = await Promise.all([
+      const results = await Promise.allSettled([
         editResume(selectedResumeId, job.id, job.description, 'ats', job.title),
         editResume(selectedResumeId, job.id, job.description, 'original', job.title),
       ])
-      setVersionAts(atsHtml)
-      setVersionOriginal(originalHtml)
-      sessionStorage.setItem(`edited-${job.id}-ats`, atsHtml)
-      sessionStorage.setItem(`edited-${job.id}-original`, originalHtml)
-      sessionStorage.removeItem(`chosen-${job.id}`)
-      processing.complete(versionId, `${job.title}`, 2)
-      toastSuccess('Versões geradas', 'Escolha a que prefere abaixo')
+
+      const [atsResult, originalResult] = results
+
+      if (atsResult.status === 'fulfilled') {
+        setVersionAts(atsResult.value)
+        sessionStorage.setItem(`edited-${job.id}-ats`, atsResult.value)
+      } else {
+        toastError('Versão ATS falhou', atsResult.reason?.message || 'Erro ao gerar')
+      }
+
+      if (originalResult.status === 'fulfilled') {
+        setVersionOriginal(originalResult.value)
+        sessionStorage.setItem(`edited-${job.id}-original`, originalResult.value)
+      } else {
+        toastError('Versão Original falhou', originalResult.reason?.message || 'Erro ao gerar')
+      }
+
+      if (atsResult.status === 'fulfilled' || originalResult.status === 'fulfilled') {
+        sessionStorage.removeItem(`chosen-${job.id}`)
+        processing.complete(versionId, `${job.title}`, 2)
+        toastSuccess('Versões geradas', 'Escolha a que prefere abaixo')
+      } else {
+        processing.fail(versionId, 'Ambas as versões falharam')
+        toastError('Erro ao gerar versões', 'Nenhuma versão foi gerada')
+      }
     } catch (err) {
       console.error('Generate versions error:', err)
       processing.fail(versionId, 'Erro ao gerar versões')
@@ -157,7 +181,10 @@ export default function VagaDetalhePage() {
 
   const openPreview = useCallback((html: string) => {
     const pw = window.open('', 'rm-preview')
-    if (!pw) return
+    if (!pw) {
+      toastError('Popup bloqueado', 'Permita popups para visualizar ou use o botão de download PDF')
+      return
+    }
     pw.document.write(`<!DOCTYPE html>
 <html lang="pt-BR">
 <head><meta charset="utf-8"><title>Pré-visualização</title>
@@ -271,8 +298,8 @@ body { font-family: Arial, sans-serif; font-size: 11pt; line-height: 1.4; backgr
             </div>
           ) : (
             <div className="space-y-4">
-              <div className="flex flex-wrap gap-3">
-                {resumes.slice(0, 5).map((r) => {
+              <div className="flex flex-wrap gap-3 max-h-48 overflow-y-auto">
+                {resumes.map((r) => {
                   const pronto = !!r.parsedData
                   return (
                     <button

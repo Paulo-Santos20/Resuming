@@ -5,7 +5,9 @@ import random
 import re
 import traceback
 import asyncio
-import http.client
+import logging
+import time
+from collections import defaultdict
 from urllib.parse import urlparse
 from typing import Optional
 from fastapi import FastAPI, HTTPException, Header, Depends
@@ -14,7 +16,6 @@ from pydantic import BaseModel
 from google import genai
 from google.genai import types
 from groq import Groq
-from openai import OpenAI
 from fastapi.responses import Response
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -24,6 +25,22 @@ if os.path.exists(dotenv_path):
     load_dotenv(dotenv_path)
 
 app = FastAPI(title="Resuming - Python Service")
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')
+
+
+def validate_environment():
+    required_vars = ["GEMINI_API_KEY", "FIREBASE_ADMIN_CLIENT_EMAIL", "FIREBASE_ADMIN_PRIVATE_KEY"]
+    optional_vars = ["GROQ_API_KEY"]
+    for var in required_vars:
+        if not os.environ.get(var):
+            logging.warning(f"[startup] Variável de ambiente obrigatória não configurada: {var}")
+    for var in optional_vars:
+        if not os.environ.get(var):
+            logging.info(f"[startup] Variável de ambiente opcional não configurada: {var}")
+
+
+validate_environment()
 
 app.add_middleware(
     CORSMiddleware,
@@ -36,8 +53,35 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+_rate_limit_store = defaultdict(list)
+RATE_LIMIT_REQUESTS = 30
+RATE_LIMIT_WINDOW = 60
+
+
+@app.middleware("http")
+async def rate_limit_middleware(request, call_next):
+    client_ip = request.client.host if request.client else "unknown"
+    now = time.time()
+    window = RATE_LIMIT_WINDOW
+
+    _rate_limit_store[client_ip] = [t for t in _rate_limit_store[client_ip] if now - t < window]
+
+    if len(_rate_limit_store[client_ip]) >= RATE_LIMIT_REQUESTS:
+        from fastapi.responses import JSONResponse
+        return JSONResponse(
+            status_code=429,
+            content={"detail": "Muitas requisições. Tente novamente em 60 segundos."},
+            headers={"Retry-After": str(window)},
+        )
+
+    _rate_limit_store[client_ip].append(now)
+    response = await call_next(request)
+    return response
+
+
 _firebase_initialized = False
 _firebase_init_error = ""
+
 
 def init_firebase():
     global _firebase_initialized, _firebase_init_error
@@ -73,6 +117,7 @@ def init_firebase():
             tmp.close()
             cred = credentials.Certificate(tmp.name)
             firebase_admin.initialize_app(cred)
+            os.unlink(tmp.name)
             _firebase_initialized = True
             return True
 
@@ -81,8 +126,9 @@ def init_firebase():
         return True
     except Exception as e:
         _firebase_init_error = f"{type(e).__name__}: {e}"
-        print(f"[Firebase] init error: {_firebase_init_error}")
+        logging.error(f"[Firebase] init error: {_firebase_init_error}")
         return False
+
 
 def verify_firebase_token(authorization: Optional[str]) -> Optional[str]:
     if not _firebase_initialized:
@@ -100,7 +146,9 @@ def verify_firebase_token(authorization: Optional[str]) -> Optional[str]:
     except Exception:
         return None
 
+
 security = HTTPBearer(auto_error=False)
+
 
 async def require_auth(credentials: HTTPAuthorizationCredentials = Depends(security)):
     if not _firebase_initialized:
@@ -112,7 +160,9 @@ async def require_auth(credentials: HTTPAuthorizationCredentials = Depends(secur
         raise HTTPException(status_code=401, detail="Não autorizado")
     return uid
 
+
 _ocr_instance = None
+
 
 def get_ocr():
     global _ocr_instance
@@ -157,6 +207,7 @@ def ocr_file(file_bytes: bytes) -> str:
         if result and len(result) > 0 and result[0] and len(result[0]) > 0:
             return "\n".join(line[1][0] for line in result[0])
         return ""
+
 
 GEMINI_MODEL = "gemini-2.5-flash"
 
@@ -213,7 +264,7 @@ def call_gemini_with_retry(client, model, contents=None, config=None):
             last_error = e
             if attempt < 4 and _is_retryable_error(e):
                 delay = (2 ** (attempt + 2)) + random.uniform(0, 1)
-                print(f"    [retry] Gemini falhou (tentativa {attempt + 1}/5), tentando novamente em {delay:.1f}s: {e}")
+                logging.warning(f"    [retry] Gemini falhou (tentativa {attempt + 1}/5), tentando novamente em {delay:.1f}s: {e}")
                 time.sleep(delay)
             else:
                 raise
@@ -231,7 +282,7 @@ def call_gemini_with_key_rotation(keys=None, model=GEMINI_MODEL, contents=None, 
             return call_gemini_with_retry(client, model, contents, config)
         except Exception as e:
             if _is_quota_error(e) and i < len(keys) - 1:
-                print(f"    [key rotation] Chave {i+1} quota exaurida, tentando próxima...")
+                logging.warning(f"    [key rotation] Chave {i+1} quota exaurida, tentando próxima...")
                 continue
             raise
 
@@ -293,16 +344,16 @@ async def call_with_fallback(contents=None, config=None):
     try:
         return await call_gemini_async(contents=contents, config=config)
     except Exception as e:
-        print(f"    [fallback] Gemini falhou após todas as tentativas: {e}")
+        logging.error(f"    [fallback] Gemini falhou após todas as tentativas: {e}")
 
-    print(f"    [fallback] Tentando Groq ({GROQ_MODEL})...")
+    logging.info(f"    [fallback] Tentando Groq ({GROQ_MODEL})...")
     try:
         text = await asyncio.get_event_loop().run_in_executor(
             None, lambda: call_groq(contents=contents, system_instruction=system_instruction)
         )
         return FallbackResponse(text)
     except Exception as e:
-        print(f"    [fallback] Groq também falhou: {e}")
+        logging.error(f"    [fallback] Groq também falhou: {e}")
         raise
 
 
@@ -324,11 +375,13 @@ class OcrJobRequest(BaseModel):
 
 ALLOWED_FONTS = {"Arial", "Calibri", "Times New Roman", "Georgia", "Helvetica", "Verdana"}
 
+
 def validate_generate_pdf_request(req: "GeneratePdfRequest"):
     if req.fontFamily and req.fontFamily not in ALLOWED_FONTS:
         req.fontFamily = "Arial"
     if req.accentColor and not re.match(r'^#[0-9a-fA-F]{6}$', req.accentColor):
         req.accentColor = "#1a3c5e"
+
 
 class GeneratePdfRequest(BaseModel):
     htmlContent: str
@@ -359,7 +412,7 @@ Sua função é adaptar currículos para vagas específicas seguindo rigorosamen
 6. Preserve a cronologia exata das experiências - não reorganize datas
 7. Formate a saída como HTML bem estruturado para conversão em PDF
 8. IDIOMA: Responda EM PORTUGUÊS (pt-BR)
-9. NUNCA use primeira pessoa do singular ("eu fiz", "minha experiência"). Comece as descrições diretamente com verbo de ação no infinitivo ou substantivo: "Gestão de equipe…", "Desenvolvimento de sistema…" em vez de "Eu gerenciei…", "Minha experiência inclui…\""""
+9. NUNCA use primeira pessoa do singular ("eu fiz", "minha experiência"). Comece as descrições diretamente com verbo de ação no infinitivo ou substantivo: "Gestão de equipe…", "Desenvolvimento de sistema…" em vez de "Eu gerenciei…", "Minha experiência inclui…\""""  # noqa: E501
 
 EMAIL_SYSTEM_PROMPT = """Você é um assistente de comunicação profissional.
 Gere um email em HTML bem formatado e humanizado para envio de currículo.
@@ -424,7 +477,7 @@ def normalizar_resume_data(data: dict) -> dict:
         for campo in ("personal", "experiencia", "educacao", "habilidades", "idiomas", "certificacoes"):
             data.setdefault(campo, {} if campo == "personal" else [])
     except Exception as e:
-        print(f"[normalizar_resume_data] ERRO: {e}")
+        logging.error(f"[normalizar_resume_data] ERRO: {e}")
     return data
 
 
@@ -438,6 +491,7 @@ ALLOWED_MAGIC_BYTES = {
     "webp": (b"RIFF", 4),
 }
 
+
 def validate_url_scheme(url: str):
     parsed = urlparse(url)
     if parsed.scheme != "https":
@@ -445,7 +499,9 @@ def validate_url_scheme(url: str):
             status_code=400, detail="Apenas URLs HTTPS são permitidas"
         )
 
+
 ALLOWED_DOMAINS = ["firebasestorage.googleapis.com", "lh3.googleusercontent.com"]
+
 
 def validate_url_domain(url: str):
     parsed = urlparse(url)
@@ -453,6 +509,7 @@ def validate_url_domain(url: str):
         raise HTTPException(
             status_code=400, detail=f"Domínio não permitido: {parsed.hostname}"
         )
+
 
 def download_file(url: str) -> bytes:
     validate_url_scheme(url)
@@ -477,12 +534,14 @@ def download_file(url: str) -> bytes:
     except Exception as e:
         raise HTTPException(status_code=502, detail="Erro ao baixar arquivo")
 
+
 def validate_pdf_magic(data: bytes):
     magic, length = ALLOWED_MAGIC_BYTES["pdf"]
     if not data.startswith(magic):
         raise HTTPException(
             status_code=422, detail="Arquivo não é um PDF válido"
         )
+
 
 def validate_image_dimensions(image) -> None:
     if image.width > ALLOWED_IMAGE_DIMENSIONS[0] or image.height > ALLOWED_IMAGE_DIMENSIONS[1]:
@@ -496,8 +555,9 @@ def validate_image_dimensions(image) -> None:
 async def health():
     return {"status": "ok"}
 
+
 @app.get("/debug/env")
-async def debug_env():
+async def debug_env(uid: str = Depends(require_auth)):
     has_gemini = bool(os.environ.get("GEMINI_API_KEY"))
     has_groq = bool(os.environ.get("GROQ_API_KEY"))
     has_client_email = bool(os.environ.get("FIREBASE_ADMIN_CLIENT_EMAIL"))
@@ -537,6 +597,8 @@ async def debug_env():
 async def parse_resume(req: ParseResumeRequest, uid: str = Depends(require_auth)):
     try:
         file_bytes = download_file(req.fileUrl)
+        if file_bytes[:4] == b"%PDF":
+            validate_pdf_magic(file_bytes)
         extracted_text = ocr_file(file_bytes)
 
         if not extracted_text.strip():
@@ -545,7 +607,7 @@ async def parse_resume(req: ParseResumeRequest, uid: str = Depends(require_auth)
                 detail="Não foi possível extrair texto do arquivo.",
             )
 
-        print(f"[parse-resume] extracted_text ({len(extracted_text)} chars)")
+        logging.info(f"[parse-resume] extracted_text ({len(extracted_text)} chars)")
 
         prompt = f"""Você é um especialista em extração de dados de currículos.
 O texto abaixo foi extraído via OCR (reconhecimento óptico de caracteres).
@@ -578,7 +640,7 @@ Retorne APENAS o JSON, sem formatação markdown."""
             contents=[prompt],
         )
 
-        print(f"[parse-resume] Resposta IA ({len(response.text)} chars)")
+        logging.info(f"[parse-resume] Resposta IA ({len(response.text)} chars)")
 
         data = extract_json_from_response(response.text)
         data = normalizar_resume_data(data)
@@ -586,7 +648,7 @@ Retorne APENAS o JSON, sem formatação markdown."""
     except HTTPException:
         raise
     except Exception as e:
-        traceback.print_exc()
+        logging.exception("Erro interno ao processar currículo")
         raise HTTPException(status_code=500, detail="Erro interno ao processar currículo")
 
 
@@ -600,7 +662,7 @@ async def debug_gemini():
         )
         return {"status": "ok", "text": response.text}
     except Exception as e:
-        traceback.print_exc()
+        logging.exception("Erro ao testar Gemini")
         return {"status": "error", "error": str(e)}
 
 
@@ -638,6 +700,7 @@ Formato HTML esperado:
 
         return {"success": True, "html": extract_html_from_response(response.text)}
     except Exception as e:
+        logging.exception("Erro interno ao editar currículo")
         raise HTTPException(status_code=500, detail="Erro interno ao editar currículo")
 
 
@@ -669,6 +732,7 @@ Retorne APENAS o JSON, sem formatação markdown."""
         data = extract_json_from_response(response.text)
         return {"success": True, "data": data, "rawText": full_text}
     except Exception as e:
+        logging.exception("Erro interno ao processar OCR")
         raise HTTPException(status_code=500, detail="Erro interno ao processar OCR")
 
 
@@ -694,11 +758,12 @@ h3 {{ font-size: {req.fontSize + 1}pt; }}
         pdf_bytes = HTML(string=html_str).write_pdf()
         return Response(content=pdf_bytes, media_type="application/pdf")
     except Exception as e:
+        logging.exception("Erro interno ao gerar PDF")
         raise HTTPException(status_code=500, detail="Erro interno ao gerar PDF")
 
 
 @app.post("/generate-email")
-async def generate_email(req: GenerateEmailRequest):
+async def generate_email(req: GenerateEmailRequest, uid: str = Depends(require_auth)):
     try:
         prompt = f"""Gere um email profissional para envio de currículo em português.
 
@@ -726,4 +791,5 @@ Exemplo: {{"subject": "Candidatura — Engenheiro de Software Sênior", "body": 
             "body": result.get("body", ""),
         }
     except Exception as e:
+        logging.exception("Erro interno ao gerar email")
         raise HTTPException(status_code=500, detail="Erro interno ao gerar email")

@@ -8,13 +8,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { FileText, Briefcase, Send, Clock } from 'lucide-react'
 import { ResumeUpload } from '@/components/resume/resume-upload'
+import { usePageTitle } from '@/hooks/use-page-title'
 
 export default function DashboardPage() {
   const { user, profile } = useAuth()
   const { resumes, loading: resumeLoading, uploadResume, fetchResumes } = useResume(user?.uid)
   const { jobs, fetchJobs } = useJobs(user?.uid)
 
-  useEffect(() => { document.title = 'Visão Geral — Resuming' }, [])
+  usePageTitle('Visão Geral')
 
   useEffect(() => {
     if (user?.uid) {
@@ -23,7 +24,7 @@ export default function DashboardPage() {
     }
   }, [user?.uid, fetchResumes, fetchJobs])
 
-  const loadingStats = resumeLoading && !resumes.length
+  const loadingStats = resumeLoading
 
   const sentCount = jobs.filter((j) => j.status === 'sent').length
   const pendingCount = jobs.filter((j) => j.status === 'pending').length
@@ -39,7 +40,7 @@ export default function DashboardPage() {
     <div className="space-y-8">
       <div>
         <h1 className="font-display text-2xl font-bold">
-          Olá, {profile?.name?.split(' ')[0]}
+          Olá, {profile?.name?.split(' ')[0] || 'usuário'}
         </h1>
         <p className="text-muted-foreground mt-1">
           Gerencie seus currículos e candidaturas

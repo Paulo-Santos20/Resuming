@@ -18,6 +18,8 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { sanitizeHtml } from '@/lib/sanitize'
 import { toastError } from '@/lib/toast'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
+import { usePageTitle } from '@/hooks/use-page-title'
 import type { JobDescription } from '@/types'
 
 export default function EmailVagaPage() {
@@ -32,13 +34,24 @@ export default function EmailVagaPage() {
 
   const [chosenType, setChosenType] = useState('ats')
   const [resumeHtml, setResumeHtml] = useState('')
+  const [confirmData, setConfirmData] = useState<{ subject: string; body: string; to: string } | null>(null)
 
   useEffect(() => {
     setChosenType(sessionStorage.getItem(`chosen-${id}`) || 'ats')
     setResumeHtml(sessionStorage.getItem(`edited-${id}`) || '')
   }, [id])
 
-  useEffect(() => { document.title = 'Enviar E-mail — Resuming' }, [])
+  usePageTitle('Enviar E-mail')
+
+  const handleSendWithConfirm = async (subject: string, body: string, to: string) => {
+    setConfirmData({ subject, body, to })
+  }
+
+  const handleConfirmSend = () => {
+    if (!confirmData) return
+    handleSend(confirmData.subject, confirmData.body, confirmData.to)
+    setConfirmData(null)
+  }
 
   useEffect(() => {
     if (!user?.uid || !id) return
@@ -90,6 +103,11 @@ export default function EmailVagaPage() {
 
   const handleSend = async (subject: string, body: string, to: string) => {
     if (!user?.uid || !job) return
+    const recipient = to || profile?.email
+    if (!recipient) {
+      toastError('Destinatário não informado', 'Defina um email de destino antes de enviar')
+      return
+    }
     setSending(true)
     try {
       const token = googleAccessToken
@@ -102,7 +120,7 @@ export default function EmailVagaPage() {
         body: JSON.stringify({
           subject,
           body,
-          to: to || profile?.email,
+          to: recipient,
           accessToken: token,
         }),
       })
@@ -208,13 +226,29 @@ export default function EmailVagaPage() {
               </Button>
             </div>
           ) : (
-            <EmailComposer
-              job={job}
-              onSend={handleSend}
-              onGenerateEmail={handleGenerateEmail}
-              loading={sending}
-              generating={generating}
-            />
+            <>
+              <EmailComposer
+                job={job}
+                onSend={handleSendWithConfirm}
+                onGenerateEmail={handleGenerateEmail}
+                loading={sending}
+                generating={generating}
+              />
+              <ConfirmDialog
+                open={!!confirmData}
+                onOpenChange={(open) => { if (!open) setConfirmData(null) }}
+                onConfirm={handleConfirmSend}
+                title="Confirmar envio de email"
+                description={
+                  confirmData
+                    ? `Enviar para ${confirmData.to} com assunto "${confirmData.subject}"?`
+                    : 'Confirmar envio?'
+                }
+                confirmLabel="Enviar"
+                variant="default"
+                loading={sending}
+              />
+            </>
           )}
         </CardContent>
       </Card>

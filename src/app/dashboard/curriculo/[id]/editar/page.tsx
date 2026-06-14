@@ -3,69 +3,21 @@
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { doc, getDoc, collection, getDocs, query, orderBy } from 'firebase/firestore'
+import { usePageTitle } from '@/hooks/use-page-title'
 import { getDbInstance } from '@/lib/firebase'
 import { useAuth } from '@/hooks/use-auth'
 import dynamic from 'next/dynamic'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ArrowLeft } from 'lucide-react'
-import type { Resume, ResumeVersion, ResumeData } from '@/types'
+import type { Resume, ResumeVersion } from '@/types'
 import type { ResumeFormatting, TemplateStyle } from '@/types/editor'
+import { renderResumeDataToHtml } from '@/lib/render-resume-data'
 
 const ResumeEditor = dynamic(
   () => import('@/components/resume/resume-editor').then((m) => m.ResumeEditor),
   { ssr: false }
 )
-
-function resumeDataToHtml(data: ResumeData): string {
-  const p = data.personal
-  const parts: string[] = []
-
-  if (p?.nome) parts.push(`<h1>${p.nome}</h1>`)
-
-  const contact = [p?.email, p?.telefone, p?.endereco].filter(Boolean).join(' &vert; ')
-  if (contact) parts.push(`<p>${contact}</p>`)
-  if (p?.linkedin) parts.push(`<p>${p.linkedin}</p>`)
-  if (p?.resumo) parts.push(`<h2>Resumo</h2><p>${p.resumo}</p>`)
-
-  if (data.experiencia?.length) {
-    parts.push('<h2>Experiência</h2>')
-    for (const e of data.experiencia) {
-      parts.push(`<h3>${e.cargo || ''}${e.empresa ? ` &mdash; ${e.empresa}` : ''}</h3>`)
-      if (e.periodo) parts.push(`<p>${e.periodo}</p>`)
-      if (e.realizacoes?.length) {
-        parts.push('<ul>' + e.realizacoes.map((r) => `<li>${r}</li>`).join('') + '</ul>')
-      }
-    }
-  }
-
-  if (data.educacao?.length) {
-    parts.push('<h2>Educação</h2>')
-    for (const e of data.educacao) {
-      parts.push(`<p><strong>${e.curso || ''}</strong>${e.instituicao ? ` &mdash; ${e.instituicao}` : ''}${e.periodo ? ` (${e.periodo})` : ''}</p>`)
-    }
-  }
-
-  if (data.habilidades?.length) {
-    parts.push(`<h2>Habilidades</h2><p>${data.habilidades.join(', ')}</p>`)
-  }
-
-  if (data.idiomas?.length) {
-    parts.push('<h2>Idiomas</h2>')
-    for (const i of data.idiomas) {
-      parts.push(`<p>${i.idioma}${i.nivel ? ` &mdash; ${i.nivel}` : ''}</p>`)
-    }
-  }
-
-  if (data.certificacoes?.length) {
-    parts.push('<h2>Certificações</h2>')
-    for (const c of data.certificacoes) {
-      parts.push(`<p>${c.nome}${c.instituicao ? ` &mdash; ${c.instituicao}` : ''}${c.ano ? ` (${c.ano})` : ''}</p>`)
-    }
-  }
-
-  return parts.join('\n')
-}
 
 export default function EditarCurriculoDirectPage() {
   const { id } = useParams<{ id: string }>()
@@ -76,9 +28,7 @@ export default function EditarCurriculoDirectPage() {
   const [resumeId, setResumeId] = useState<string | undefined>(undefined)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    document.title = 'Editar Currículo — Resuming'
-  }, [])
+  usePageTitle('Editar Currículo')
 
   useEffect(() => {
     if (!user?.uid || !id) return
@@ -118,7 +68,7 @@ export default function EditarCurriculoDirectPage() {
         }
 
         if (resume.parsedData) {
-          setInitialContent(resumeDataToHtml(resume.parsedData))
+          setInitialContent(renderResumeDataToHtml(resume.parsedData))
         } else {
           setError('Currículo ainda não processado')
         }

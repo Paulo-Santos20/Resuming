@@ -76,6 +76,7 @@ export function useJobs(userId: string | undefined) {
         }
 
         const docRef = await addDoc(collection(dbInstance, 'users', userId, 'jobs'), {
+          userId,
           title,
           description: finalDescription,
           source: photoFile ? 'photo' : 'text',

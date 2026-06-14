@@ -1,6 +1,7 @@
 'use client'
 
 import { Button } from '@/components/ui/button'
+import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { useAuth } from '@/hooks/use-auth'
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
@@ -22,7 +23,7 @@ export function GoogleLoginButton() {
         className="flex items-center gap-3 bg-card text-foreground border border-border hover:bg-secondary shadow-sm min-w-[280px]"
       >
         {loading ? (
-          <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" role="status" aria-label="Carregando" />
+          <LoadingSpinner size="sm" />
         ) : (
           <svg className="h-5 w-5" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
             <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4" />

@@ -4,12 +4,14 @@ import { useAuth } from '@/hooks/use-auth'
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 import { GoogleLoginButton } from '@/components/auth/google-login-button'
+import { LoadingSpinner } from '@/components/ui/loading-spinner'
+import { usePageTitle } from '@/hooks/use-page-title'
 
 export default function LoginPage() {
   const { user, loading } = useAuth()
   const router = useRouter()
 
-  useEffect(() => { document.title = 'Login — Resuming' }, [])
+  usePageTitle('Login')
 
   useEffect(() => {
     if (!loading && user) router.push('/dashboard')
@@ -18,10 +20,7 @@ export default function LoginPage() {
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-surface">
-        <div className="flex flex-col items-center gap-4">
-          <div className="h-10 w-10 animate-spin rounded-full border-4 border-brand border-t-transparent" role="status" aria-label="Carregando" />
-          <p className="text-sm text-muted-foreground">Carregando…</p>
-        </div>
+        <LoadingSpinner size="lg" label="Carregando…" />
       </div>
     )
   }

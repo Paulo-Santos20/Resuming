@@ -5,13 +5,23 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { Separator } from '@/components/ui/separator'
 import { Button } from '@/components/ui/button'
-import { LogOut, Trash2 } from 'lucide-react'
-import { useEffect } from 'react'
+import { useUIStore } from '@/stores/ui-store'
+import { LogOut, Trash2, Moon, Sun } from 'lucide-react'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
+import { usePageTitle } from '@/hooks/use-page-title'
+import { useState } from 'react'
 
 export default function ConfiguracoesPage() {
   const { profile, logout } = useAuth()
+  const { darkMode, toggleDarkMode } = useUIStore()
+  const [logoutOpen, setLogoutOpen] = useState(false)
 
-  useEffect(() => { document.title = 'Configurações — Resuming' }, [])
+  usePageTitle('Configurações')
+
+  const handleLogout = () => {
+    logout()
+    setLogoutOpen(false)
+  }
 
   return (
     <div className="max-w-2xl mx-auto space-y-8">
@@ -45,6 +55,27 @@ export default function ConfiguracoesPage() {
 
       <Card>
         <CardHeader>
+          <CardTitle>Aparência</CardTitle>
+          <CardDescription>Alternar entre tema claro e escuro</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button
+            variant="outline"
+            className="w-full justify-start"
+            onClick={toggleDarkMode}
+          >
+            {darkMode ? (
+              <Sun className="h-4 w-4 mr-2" />
+            ) : (
+              <Moon className="h-4 w-4 mr-2" />
+            )}
+            {darkMode ? 'Modo claro' : 'Modo escuro'}
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle>Conta</CardTitle>
           <CardDescription>Ações da conta</CardDescription>
         </CardHeader>
@@ -52,11 +83,20 @@ export default function ConfiguracoesPage() {
           <Button
             variant="outline"
             className="w-full justify-start text-destructive hover:text-destructive-text hover:bg-destructive-bg"
-            onClick={logout}
+            onClick={() => setLogoutOpen(true)}
           >
             <LogOut className="h-4 w-4 mr-2" />
             Sair da conta
           </Button>
+          <ConfirmDialog
+            open={logoutOpen}
+            onOpenChange={setLogoutOpen}
+            onConfirm={handleLogout}
+            title="Sair da conta"
+            description="Tem certeza que deseja sair?"
+            confirmLabel="Sair"
+            variant="destructive"
+          />
           <Button
             variant="outline"
             className="w-full justify-start text-muted-foreground"

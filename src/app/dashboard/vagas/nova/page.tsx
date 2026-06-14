@@ -1,14 +1,14 @@
 'use client'
 
-import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/hooks/use-auth'
 import { useJobs } from '@/hooks/use-jobs'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { JobForm } from '@/components/job/job-form'
+import { usePageTitle } from '@/hooks/use-page-title'
 
 export default function NovaVagaPage() {
-  useEffect(() => { document.title = 'Nova Vaga — Resuming' }, [])
+  usePageTitle('Nova Vaga')
   const { user } = useAuth()
   const { loading, createJob } = useJobs(user?.uid)
   const router = useRouter()

@@ -87,6 +87,7 @@ export function useResume(userId: string | undefined) {
         const downloadURL = await getDownloadURL(storageRef)
 
         const docRef = await addDoc(collection(dbInstance, 'users', userId, 'resumes'), {
+          userId,
           originalFileName: file.name,
           storagePath,
           downloadURL,
@@ -234,7 +235,7 @@ export function useResume(userId: string | undefined) {
 function guessName(fileName: string): string {
   const name = fileName
     .replace(/\.pdf$/i, '')
-    .replace(/[-_].*$/, '')
+    .split(/[-_]/)[0]
     .trim()
   return name || 'Nome não detectado'
 }
