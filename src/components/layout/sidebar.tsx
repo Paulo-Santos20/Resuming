@@ -120,7 +120,7 @@ export function Sidebar({ onLogout, userName, userEmail, photoURL, mobileOpen, o
               </button>
               <button
                 onClick={toggleSidebar}
-                className="flex items-center justify-center h-5 w-5 text-muted-foreground hover:text-foreground transition-colors rounded"
+                className="flex items-center justify-center min-h-[44px] min-w-[44px] text-muted-foreground hover:text-foreground transition-colors rounded"
                 title="Expandir menu"
                 aria-label="Expandir menu"
               >
@@ -260,6 +260,7 @@ export function Sidebar({ onLogout, userName, userEmail, photoURL, mobileOpen, o
           className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm lg:hidden"
           onClick={onMobileClose}
           aria-hidden="true"
+          style={{ overscrollBehavior: 'contain' }}
         />
       )}
 
@@ -274,6 +275,7 @@ export function Sidebar({ onLogout, userName, userEmail, photoURL, mobileOpen, o
           'transition-transform duration-300 ease-in-out',
           mobileOpen ? 'translate-x-0' : '-translate-x-full'
         )}
+        style={{ overscrollBehavior: 'contain' }}
       >
         {sidebarContent()}
       </aside>

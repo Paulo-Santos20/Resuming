@@ -167,7 +167,7 @@ ${templateCss}
             )}
           </div>
           <div className="flex items-center gap-3">
-            {isDirty && <span className="text-xs text-muted-foreground">Alterações não salvas</span>}
+            {isDirty && <span className="hidden sm:inline text-xs text-muted-foreground">Alterações não salvas</span>}
             {lastSaved && !isDirty && (
               <span className="text-xs text-muted-foreground">
                 Salvo {new Date(lastSaved).toLocaleTimeString('pt-BR')}

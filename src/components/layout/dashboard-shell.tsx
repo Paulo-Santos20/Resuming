@@ -41,7 +41,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   if (!user || !profile) return null
 
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="flex min-h-dvh overflow-hidden">
       <Sidebar
         onLogout={logout}
         userName={profile.name}
@@ -64,7 +64,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           <span className="font-display font-semibold text-sm">Resuming</span>
         </div>
 
-        <div className="p-4 lg:p-8">
+        <div className="p-4 sm:p-6 lg:p-8">
           {children}
         </div>
       </main>

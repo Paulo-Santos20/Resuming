@@ -384,12 +384,13 @@ body { font-family: Arial, sans-serif; font-size: 11pt; line-height: 1.4; backgr
                   </div>
                 ) : (
                   <>
-                    <Button variant="outline" size="sm" onClick={() => handleChooseVersion('ats')} disabled={!versionAts}>
-                      Escolher esta
+                    <Button variant="outline" size="sm" onClick={() => handleChooseVersion('ats')} disabled={!versionAts} title="Escolher esta">
+                      <span className="hidden sm:inline">Escolher esta</span>
+                      <Check className="h-3 w-3 sm:hidden" />
                     </Button>
-                    <Button variant="outline" size="sm" onClick={() => handleEditVersion('ats')} disabled={!versionAts}>
-                      <Edit3 className="h-3 w-3 mr-1" />
-                      Editar
+                    <Button variant="outline" size="sm" onClick={() => handleEditVersion('ats')} disabled={!versionAts} title="Editar">
+                      <Edit3 className="h-3 w-3 sm:mr-1" />
+                      <span className="hidden sm:inline">Editar</span>
                     </Button>
                   </>
                 )}
@@ -437,12 +438,13 @@ body { font-family: Arial, sans-serif; font-size: 11pt; line-height: 1.4; backgr
                   </div>
                 ) : (
                   <>
-                    <Button variant="outline" size="sm" onClick={() => handleChooseVersion('original')} disabled={!versionOriginal}>
-                      Escolher esta
+                    <Button variant="outline" size="sm" onClick={() => handleChooseVersion('original')} disabled={!versionOriginal} title="Escolher esta">
+                      <span className="hidden sm:inline">Escolher esta</span>
+                      <Check className="h-3 w-3 sm:hidden" />
                     </Button>
-                    <Button variant="outline" size="sm" onClick={() => handleEditVersion('original')} disabled={!versionOriginal}>
-                      <Edit3 className="h-3 w-3 mr-1" />
-                      Editar
+                    <Button variant="outline" size="sm" onClick={() => handleEditVersion('original')} disabled={!versionOriginal} title="Editar">
+                      <Edit3 className="h-3 w-3 sm:mr-1" />
+                      <span className="hidden sm:inline">Editar</span>
                     </Button>
                   </>
                 )}

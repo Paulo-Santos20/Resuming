@@ -265,26 +265,24 @@ body { font-family: Arial, sans-serif; font-size: 11pt; line-height: 1.4; backgr
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-7 w-7"
                       onClick={(e) => { e.stopPropagation(); openPreview(tab.content!) }}
                       title="Visualizar"
                     >
-                      <Eye className="h-3.5 w-3.5" />
+                      <Eye className="h-4 w-4" />
                     </Button>
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-7 w-7"
                       onClick={(e) => { e.stopPropagation(); downloadPdf(tab.content!, tab.key) }}
                       title="Download PDF"
                     >
-                      <Download className="h-3.5 w-3.5" />
+                      <Download className="h-4 w-4" />
                     </Button>
                     {selectedVersion !== tab.key && (
                       <Button
                         variant="default"
                         size="sm"
-                        className="ml-auto h-7 text-xs"
+                        className="ml-auto"
                         onClick={(e) => { e.stopPropagation(); handleSelectVersion(tab.key) }}
                       >
                         <Edit3 className="h-3 w-3 mr-1" />
