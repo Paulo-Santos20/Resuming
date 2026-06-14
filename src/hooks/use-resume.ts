@@ -163,8 +163,15 @@ export function useResume(userId: string | undefined) {
           }),
         })
         if (!response.ok) {
-          const errBody = await response.json().catch(() => ({ error: 'Erro ao editar currículo' }))
-          throw new Error(errBody.detail || errBody.error || 'Erro ao editar currículo')
+          let msg = 'Erro ao editar currículo'
+          try {
+            const errBody = await response.json()
+            msg = errBody.detail || errBody.error || msg
+          } catch {
+            const rawText = await response.text().catch(() => msg)
+            if (rawText && rawText !== msg) msg = rawText
+          }
+          throw new Error(msg)
         }
         const { html } = await response.json()
 

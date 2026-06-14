@@ -11,21 +11,40 @@ export async function POST(request: NextRequest) {
     const parsed = validateBody(OcrJobApiSchema, body)
     if (parsed instanceof NextResponse) return parsed
 
-    const response = await fetch(`${PYTHON_SERVICE_URL}/ocr-job`, {
-      method: 'POST',
-      headers: forwardAuth(request),
-      body: JSON.stringify(parsed),
-    })
+    let response: Response
+    try {
+      response = await fetch(`${PYTHON_SERVICE_URL}/ocr-job`, {
+        method: 'POST',
+        headers: forwardAuth(request),
+        signal: AbortSignal.timeout(120000),
+        body: JSON.stringify(parsed),
+      })
+    } catch (fetchErr) {
+      console.error('[ocr-job] fetch failed:', fetchErr)
+      return NextResponse.json(
+        { error: 'Serviço de OCR indisponível. Verifique se o backend Python está rodando.' },
+        { status: 503 }
+      )
+    }
 
     if (!response.ok) {
-      const error = await response.text()
-      return NextResponse.json({ error }, { status: response.status })
+      const rawText = await response.text()
+      let detail = rawText
+      try {
+        const parsed = JSON.parse(rawText)
+        detail = parsed.detail || parsed.error || rawText
+      } catch {}
+      console.error('[ocr-job] Python error:', response.status, detail)
+      return NextResponse.json({ error: detail, detail }, { status: response.status })
     }
 
     const data = await response.json()
     return NextResponse.json(data)
   } catch (err) {
-    console.error('OCR job error:', err)
-    return NextResponse.json({ error: 'Erro interno do servidor' }, { status: 500 })
+    console.error('[ocr-job] unexpected error:', err)
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : 'Erro interno do servidor' },
+      { status: 500 }
+    )
   }
 }
