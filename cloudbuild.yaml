@@ -30,3 +30,8 @@ steps:
       - --cpu=2
       - --timeout=300
       - --concurrency=80
+      - --set-env-vars=FIREBASE_ADMIN_CLIENT_EMAIL=$_FIREBASE_ADMIN_CLIENT_EMAIL
+      - --set-env-vars=NEXT_PUBLIC_FIREBASE_PROJECT_ID=wespace-8b381
+      - --set-secrets=GEMINI_API_KEY=gemini-api-key:latest
+      - --set-secrets=GROQ_API_KEY=groq-api-key:latest
+      - --set-secrets=FIREBASE_ADMIN_PRIVATE_KEY=firebase-admin-private-key:latest
