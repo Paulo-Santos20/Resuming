@@ -649,7 +649,7 @@ Retorne APENAS o JSON, sem formatação markdown."""
         raise
     except Exception as e:
         logging.exception("Erro interno ao processar currículo")
-        raise HTTPException(status_code=500, detail="Erro interno ao processar currículo")
+        raise HTTPException(status_code=500, detail=f"{type(e).__name__}: {str(e)[:300]}")
 
 
 @app.get("/debug/gemini")
@@ -666,12 +666,26 @@ async def debug_gemini():
         return {"status": "error", "error": str(e)}
 
 
+ORIGINAL_SYSTEM_PROMPT = """Você é um assistente de formatação de currículos.
+Sua função é converter dados estruturados de currículo em HTML limpo e bem formatado.
+
+REGRAS:
+1. Preserve EXATAMENTE o conteúdo original - não adicione, remova ou altere qualificações
+2. Organize visualmente as seções: Dados Pessoais, Resumo, Experiência, Educação, Habilidades, Idiomas
+3. Formate como HTML com estilos inline compatível com WeasyPrint
+4. IDIOMA: Responda EM PORTUGUÊS (pt-BR)
+5. NUNCA use primeira pessoa do singular. Escreva de forma impessoal.
+6. Retorne APENAS o HTML, sem formatação markdown"""
+
+
 @app.post("/edit-resume")
 async def edit_resume(req: EditResumeRequest, uid: str = Depends(require_auth)):
     try:
+        logging.info(f"[edit-resume] templateType={req.templateType}, instructions={req.instructions}, resumeData.keys={list(req.resumeData.keys())}")
+
         resume_str = json.dumps(req.resumeData, ensure_ascii=False, indent=2)
-        prompt = f"""Com base nos dados estruturados do currículo abaixo e na descrição da vaga,
-gere um currículo adaptado em HTML formatado para conversão em PDF.
+        base_prompt = f"""Com base nos dados estruturados do currículo abaixo e na descrição da vaga,
+{'ADAPTE o currículo para a vaga, otimizando para ATS (Applicant Tracking Systems).' if req.templateType == 'ats' else 'formate o currículo em HTML limpo preservando o conteúdo original.'}
 
 {('Instruções adicionais: ' + req.instructions) if req.instructions else ''}
 
@@ -691,17 +705,19 @@ Formato HTML esperado:
 - NUNCA use primeira pessoa ("eu fiz", "minha experiência"). Escreva de forma impessoal: "Gestão de equipe…", "Desenvolvimento de…" em vez de "Eu gerenciei…"
 - Retorne APENAS o HTML, sem formatação markdown"""
 
+        system_prompt = RESUME_SYSTEM_PROMPT if req.templateType == 'ats' else ORIGINAL_SYSTEM_PROMPT
+
         response = await call_with_fallback(
             config=types.GenerateContentConfig(
-                system_instruction=RESUME_SYSTEM_PROMPT,
+                system_instruction=system_prompt,
             ),
-            contents=[prompt],
+            contents=[base_prompt],
         )
 
         return {"success": True, "html": extract_html_from_response(response.text)}
     except Exception as e:
         logging.exception("Erro interno ao editar currículo")
-        raise HTTPException(status_code=500, detail="Erro interno ao editar currículo")
+        raise HTTPException(status_code=500, detail=f"{type(e).__name__}: {str(e)[:300]}")
 
 
 @app.post("/ocr-job")
@@ -733,7 +749,7 @@ Retorne APENAS o JSON, sem formatação markdown."""
         return {"success": True, "data": data, "rawText": full_text}
     except Exception as e:
         logging.exception("Erro interno ao processar OCR")
-        raise HTTPException(status_code=500, detail="Erro interno ao processar OCR")
+        raise HTTPException(status_code=500, detail=f"{type(e).__name__}: {str(e)[:300]}")
 
 
 @app.post("/generate-pdf")
@@ -759,7 +775,7 @@ h3 {{ font-size: {req.fontSize + 1}pt; }}
         return Response(content=pdf_bytes, media_type="application/pdf")
     except Exception as e:
         logging.exception("Erro interno ao gerar PDF")
-        raise HTTPException(status_code=500, detail="Erro interno ao gerar PDF")
+        raise HTTPException(status_code=500, detail=f"{type(e).__name__}: {str(e)[:300]}")
 
 
 @app.post("/generate-email")
@@ -792,4 +808,4 @@ Exemplo: {{"subject": "Candidatura — Engenheiro de Software Sênior", "body": 
         }
     except Exception as e:
         logging.exception("Erro interno ao gerar email")
-        raise HTTPException(status_code=500, detail="Erro interno ao gerar email")
+        raise HTTPException(status_code=500, detail=f"{type(e).__name__}: {str(e)[:300]}")
