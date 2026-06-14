@@ -41,7 +41,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   if (!user || !profile) return null
 
   return (
-    <div className="flex min-h-dvh overflow-hidden">
+    <div className="flex h-dvh overflow-hidden">
       <Sidebar
         onLogout={logout}
         userName={profile.name}
