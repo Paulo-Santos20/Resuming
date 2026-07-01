@@ -10,7 +10,16 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json()
     const parsed = validateBody(EditResumeApiSchema, body)
-    if (parsed instanceof NextResponse) return parsed
+    if (parsed instanceof NextResponse) {
+      const errBody = await parsed.clone().json()
+      console.error('[edit-resume] validation error:', JSON.stringify(errBody))
+      return parsed
+    }
+
+    const jobDesc = sanitizeHtml(parsed.jobDescription || '')
+    if (!jobDesc) {
+      console.warn('[edit-resume] jobDescription vazia, usando fallback')
+    }
 
     console.log('[edit-resume] calling Python service at', PYTHON_SERVICE_URL)
 
@@ -22,7 +31,7 @@ export async function POST(request: NextRequest) {
         signal: AbortSignal.timeout(60000),
         body: JSON.stringify({
           resumeData: parsed.resumeData,
-          jobDescription: sanitizeHtml(parsed.jobDescription),
+          jobDescription: jobDesc || 'Gere um currículo padronizado sem descrição de vaga específica',
           templateType: parsed.templateType,
           instructions: parsed.instructions,
         }),

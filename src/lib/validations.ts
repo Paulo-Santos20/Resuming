@@ -35,7 +35,7 @@ export const ParseResumeApiSchema = z.object({
 
 export const EditResumeApiSchema = z.object({
   resumeData: z.record(z.string(), z.unknown()),
-  jobDescription: z.string().min(1).max(50000),
+  jobDescription: z.string().max(50000).default(''),
   templateType: z.enum(['ats', 'original']).default('ats'),
   instructions: z.string().optional(),
 })
