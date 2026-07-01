@@ -189,21 +189,25 @@ export default function VagaDetalhePage() {
     }
     pw.document.write(`<!DOCTYPE html>
 <html lang="pt-BR">
-<head><meta charset="utf-8"><title>Pré-visualização</title>
+<head><meta charset="utf-8"><title></title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body { font-family: Arial, sans-serif; font-size: 11pt; line-height: 1.4; background: #f5f5f5; display: flex; justify-content: center; padding: 20mm 0; }
-.preview-page { width: 210mm; background: #fff; padding: 20mm; box-shadow: 0 2px 12px rgba(0,0,0,0.1); }
+body { font-family: Arial, sans-serif; font-size: 10pt; line-height: 1.25; background: #f5f5f5; display: flex; flex-direction: column; align-items: center; padding: 10mm 0; }
+.page-wrap { width: 210mm; background: #fff; padding: 15mm; box-shadow: 0 1px 8px rgba(0,0,0,0.07); position: relative; }
 .rm-template { color: #333; }
-.rm-template h1 { font-size: 18pt; margin-bottom: 4px; }
-.rm-template h2 { font-size: 14pt; border-bottom: 2px solid #2563eb; padding-bottom: 4px; margin-top: 16px; margin-bottom: 8px; }
-.rm-template h3 { font-size: 12pt; margin-top: 12px; margin-bottom: 4px; }
-.rm-template p { margin-bottom: 6px; }
-.rm-template ul, .rm-template ol { margin-bottom: 6px; padding-left: 20px; }
-.rm-template li { margin-bottom: 2px; }
-@media print { body { padding: 0; background: #fff; } .preview-page { box-shadow: none; padding: 15mm; } }
+.rm-template h1 { font-size: 16pt; margin-bottom: 3px; }
+.rm-template h2 { font-size: 12pt; border-bottom: 1.5px solid #2563eb; padding-bottom: 3px; margin-top: 8px; margin-bottom: 4px; break-before: auto; }
+.rm-template h3 { font-size: 11pt; margin-top: 6px; margin-bottom: 2px; }
+.rm-template p { margin-bottom: 3px; }
+.rm-template ul, .rm-template ol { margin-bottom: 3px; padding-left: 18px; }
+.rm-template li { margin-bottom: 1px; }
+.page-break-indicator { display: none; }
+@page { size: A4; margin: 0; }
+@media print { body { padding: 0; background: #fff; } .page-wrap { box-shadow: none; padding: 15mm; } }
 </style></head>
-<body><div class="preview-page"><div class="rm-template">${sanitizeHtml(html)}</div></div></body></html>`)
+<body>
+<div class="page-wrap"><div class="rm-template">${sanitizeHtml(html)}</div></div>
+</body></html>`)
     pw.document.close()
   }, [])
 

@@ -697,12 +697,17 @@ Descrição da vaga:
 
 Formato HTML esperado:
 - Use <div> com estilos inline (WeasyPrint compatível)
-- Fonte: Arial, sans-serif
+- Fonte: Arial, sans-serif, tamanho 10pt
 - Cores: #1a3c5e para títulos, #333 para texto
-- Margens: 20mm
+- Margens: 15mm
+- Espaçamento COMPACTO: margin-bottom de no máximo 4px entre blocos e parágrafos, 8px entre seções
+- Títulos de seção (h2): margin-top 8px, margin-bottom 4px
+- line-height: 1.25
 - Seções: Dados Pessoais, Resumo, Experiência, Educação, Habilidades, Idiomas
 - Máximo 2 páginas
+- PARA CADA CARGO: no máximo 3 bullet points, cada bullet com no máximo 15 palavras
 - NUNCA use primeira pessoa ("eu fiz", "minha experiência"). Escreva de forma impessoal: "Gestão de equipe…", "Desenvolvimento de…" em vez de "Eu gerenciei…"
+- SEJA CONCISO: elimine adjetivos, advérbios e linguagem rebuscada. Prefira "Desenvolvimento de sistema web" a "Desenvolvimento de um sistema web moderno e responsivo"
 - Retorne APENAS o HTML, sem formatação markdown"""
 
         system_prompt = RESUME_SYSTEM_PROMPT if req.templateType == 'ats' else ORIGINAL_SYSTEM_PROMPT

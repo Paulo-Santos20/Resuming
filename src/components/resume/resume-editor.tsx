@@ -70,7 +70,7 @@ export function ResumeEditor({
 
     pw.document.write(`<!DOCTYPE html>
 <html lang="pt-BR">
-<head><meta charset="utf-8"><title>Pré-visualização</title>
+<head><meta charset="utf-8"><title></title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body {
@@ -78,15 +78,11 @@ body {
   line-height: ${formatting.lineHeight};
   background: #f5f5f5;
   display: flex;
-  justify-content: center;
-  padding: 20mm 0;
+  flex-direction: column;
+  align-items: center;
+  padding: 10mm 0;
 }
-.preview-page {
-  width: 210mm;
-  background: #fff;
-  padding: ${formatting.pageMargins}mm;
-  box-shadow: var(--rm-card-shadow, 0 2px 12px rgba(0,0,0,0.1));
-}
+.page-wrap { width: 210mm; background: #fff; padding: ${formatting.pageMargins}mm; box-shadow: 0 1px 8px rgba(0,0,0,0.07); position: relative; }
 .rm-template {
   font-family: var(--rm-font, ${formatting.fontFamily}, sans-serif);
   color: var(--rm-text, #333);
@@ -95,15 +91,19 @@ body {
   color: var(--rm-accent, ${formatting.accentColor});
   font-family: var(--rm-font, ${formatting.fontFamily}, sans-serif);
 }
-.rm-template h1 { font-size: ${Math.min(formatting.fontSize + 6, 22)}pt; margin-bottom: 4px; }
-.rm-template h2 { font-size: ${Math.min(formatting.fontSize + 3, 17)}pt; border-bottom: var(--rm-section-border, 2px solid ${formatting.accentColor}); padding-bottom: 4px; margin-top: ${formatting.sectionSpacing}px; margin-bottom: 8px; }
-.rm-template h3 { font-size: ${formatting.fontSize + 1}pt; margin-top: ${formatting.sectionSpacing * 0.7}px; margin-bottom: 4px; }
-.rm-template p { margin-bottom: ${formatting.sectionSpacing * 0.4}px; }
-.rm-template ul, .rm-template ol { margin-bottom: ${formatting.sectionSpacing * 0.4}px; padding-left: 20px; }
-.rm-template li { margin-bottom: 2px; }
+.rm-template h1 { font-size: ${Math.min(formatting.fontSize + 6, 22)}pt; margin-bottom: 3px; }
+.rm-template h2 { font-size: ${Math.min(formatting.fontSize + 3, 17)}pt; border-bottom: var(--rm-section-border, 2px solid ${formatting.accentColor}); padding-bottom: 3px; margin-top: 8px; margin-bottom: 4px; break-before: auto; }
+.rm-template h3 { font-size: ${formatting.fontSize + 1}pt; margin-top: 6px; margin-bottom: 2px; }
+.rm-template p { margin-bottom: 3px; }
+.rm-template ul, .rm-template ol { margin-bottom: 3px; padding-left: 18px; }
+.rm-template li { margin-bottom: 1px; }
 ${templateCss}
+@page { size: A4; margin: 0; }
+@media print { body { padding: 0; background: #fff; } .page-wrap { box-shadow: none; } }
 </style></head>
-<body><div class="preview-page"><div class="rm-template">${sanitizeHtml(content)}</div></div></body></html>`)
+<body>
+<div class="page-wrap"><div class="rm-template">${sanitizeHtml(content)}</div></div>
+</body></html>`)
     pw.document.close()
   }, [editor, formatting, templateStyle])
 
