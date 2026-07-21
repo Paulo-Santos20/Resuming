@@ -122,7 +122,7 @@ export function JobForm({ onSubmit, loading }: JobFormProps) {
             <input {...getInputProps()} aria-label="Selecionar foto da vaga" />
             {photoFile ? (
               <div className="flex items-center gap-3">
-                <Image className="h-5 w-5 text-brand" alt="" />
+                <Image className="h-5 w-5 text-brand" aria-hidden="true" />
                 <span className="text-sm">{photoFile.name}</span>
                 <Button
                   type="button"
