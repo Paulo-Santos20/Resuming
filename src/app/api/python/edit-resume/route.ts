@@ -3,6 +3,9 @@ import { verifyAuth, validateBody, PYTHON_SERVICE_URL, forwardAuth } from '@/lib
 import { sanitizeHtml } from '@/lib/sanitize'
 import { EditResumeApiSchema } from '@/lib/validations'
 
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
+const MAX_RETRIES = 3
+
 export async function POST(request: NextRequest) {
   try {
     const uidOrResponse = await verifyAuth(request)
@@ -21,43 +24,64 @@ export async function POST(request: NextRequest) {
       console.warn('[edit-resume] jobDescription vazia, usando fallback')
     }
 
-    let response: Response
-    try {
-      response = await fetch(`${PYTHON_SERVICE_URL}/edit-resume`, {
-        method: 'POST',
-        headers: forwardAuth(request),
-        signal: AbortSignal.timeout(60000),
-        body: JSON.stringify({
-          resumeData: parsed.resumeData,
-          jobDescription: jobDesc || 'Gere um currículo padronizado sem descrição de vaga específica',
-          templateType: parsed.templateType,
-          instructions: parsed.instructions,
-        }),
-      })
-    } catch (fetchErr) {
-      console.error('[edit-resume] fetch failed:', fetchErr)
-      return NextResponse.json(
-        { error: 'Serviço de edição indisponível. Verifique se o backend Python está rodando.' },
-        { status: 503 }
-      )
-    }
+    const bodyPayload = JSON.stringify({
+      resumeData: parsed.resumeData,
+      jobDescription: jobDesc || 'Gere um currículo padronizado sem descrição de vaga específica',
+      templateType: parsed.templateType,
+      instructions: parsed.instructions,
+    })
 
-    if (!response.ok) {
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+      let response: Response
+      try {
+        response = await fetch(`${PYTHON_SERVICE_URL}/edit-resume`, {
+          method: 'POST',
+          headers: forwardAuth(request),
+          signal: AbortSignal.timeout(60000),
+          body: bodyPayload,
+        })
+      } catch (fetchErr) {
+        if (attempt < MAX_RETRIES) {
+          const delay = Math.pow(2, attempt) * 1000
+          console.log(`[edit-resume] fetch failed (attempt ${attempt + 1}), retry in ${delay}ms:`, fetchErr)
+          await sleep(delay)
+          continue
+        }
+        console.error('[edit-resume] fetch failed after all retries:', fetchErr)
+        return NextResponse.json(
+          { error: 'Serviço de edição indisponível. Verifique se o backend Python está rodando.' },
+          { status: 503 }
+        )
+      }
+
+      if (response.ok) {
+        const data = await response.json()
+        if (data.html) {
+          data.html = sanitizeHtml(data.html)
+        }
+        return NextResponse.json(data)
+      }
+
       const rawText = await response.text()
-      let detail = rawText
+      let detail: string
       try {
         const parsed = JSON.parse(rawText)
         detail = parsed.detail || parsed.error || rawText
-      } catch {}
+      } catch {
+        detail = rawText
+      }
+
+      if (response.status === 429 && attempt < MAX_RETRIES) {
+        const retryAfter = response.headers.get('Retry-After')
+        const delay = retryAfter ? parseInt(retryAfter) * 1000 : Math.pow(2, attempt) * 1000
+        console.log(`[edit-resume] rate limited (attempt ${attempt + 1}), retry in ${delay}ms`)
+        await sleep(delay)
+        continue
+      }
+
       console.error('[edit-resume] Python returned error:', response.status, detail)
       return NextResponse.json({ error: detail, detail }, { status: response.status })
     }
-
-    const data = await response.json()
-    if (data.html) {
-      data.html = sanitizeHtml(data.html)
-    }
-    return NextResponse.json(data)
   } catch (err) {
     console.error('[edit-resume] unexpected error:', err)
     return NextResponse.json(

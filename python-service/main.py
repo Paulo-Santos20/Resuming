@@ -54,7 +54,7 @@ app.add_middleware(
 )
 
 _rate_limit_store = defaultdict(list)
-RATE_LIMIT_REQUESTS = 30
+RATE_LIMIT_REQUESTS = 100
 RATE_LIMIT_WINDOW = 60
 
 
