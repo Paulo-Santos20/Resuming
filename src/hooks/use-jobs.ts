@@ -1,15 +1,17 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import {
   collection,
   query,
   orderBy,
-  getDocs,
   addDoc,
   doc,
   updateDoc,
+  deleteDoc,
   limit,
+  onSnapshot,
+  Unsubscribe,
 } from 'firebase/firestore'
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 import { getDbInstance, getStorageInstance, getAuthInstance } from '@/lib/firebase'
@@ -18,27 +20,41 @@ import type { JobDescription } from '@/types'
 
 export function useJobs(userId: string | undefined) {
   const [jobs, setJobs] = useState<JobDescription[]>([])
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const fetchJobs = useCallback(async () => {
-    if (!userId) return
-    const dbInstance = getDbInstance()
-    setError(null)
-    setLoading(true)
-    try {
-      const q = query(
-        collection(dbInstance, 'users', userId, 'jobs'),
-        orderBy('createdAt', 'desc'),
-        limit(50)
-      )
-      const snap = await getDocs(q)
-      setJobs(snap.docs.map((d) => ({ id: d.id, ...d.data() } as JobDescription)))
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Erro ao carregar vagas')
-    } finally {
+  useEffect(() => {
+    if (!userId) {
+      setJobs([])
       setLoading(false)
+      return
     }
+
+    setLoading(true)
+    setError(null)
+
+    const dbInstance = getDbInstance()
+    const q = query(
+      collection(dbInstance, 'users', userId, 'jobs'),
+      orderBy('createdAt', 'desc'),
+      limit(50)
+    )
+
+    const unsubscribe = onSnapshot(
+      q,
+      (snap) => {
+        setJobs(snap.docs.map((d) => ({ id: d.id, ...d.data() } as JobDescription)))
+        setLoading(false)
+        setError(null)
+      },
+      (err) => {
+        console.error('Jobs snapshot error:', err)
+        setError('Erro ao carregar vagas')
+        setLoading(false)
+      }
+    )
+
+    return () => unsubscribe()
   }, [userId])
 
   const createJob = useCallback(
@@ -86,7 +102,6 @@ export function useJobs(userId: string | undefined) {
           createdAt: Date.now(),
         })
 
-        await fetchJobs()
         toastSuccess('Vaga criada', `${title} foi adicionada com sucesso`)
         return docRef.id
       } catch (err: unknown) {
@@ -98,7 +113,22 @@ export function useJobs(userId: string | undefined) {
         setLoading(false)
       }
     },
-    [userId, fetchJobs]
+    [userId]
+  )
+
+  const deleteJob = useCallback(
+    async (jobId: string) => {
+      if (!userId) return
+      try {
+        await deleteDoc(doc(getDbInstance(), 'users', userId, 'jobs', jobId))
+        toastSuccess('Vaga excluída', 'A vaga foi removida com sucesso')
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : 'Erro ao excluir vaga'
+        setError(message)
+        toastError('Erro ao excluir', message)
+      }
+    },
+    [userId]
   )
 
   const markAsSent = useCallback(
@@ -109,7 +139,6 @@ export function useJobs(userId: string | undefined) {
           status: 'sent',
           emailSentAt: Date.now(),
         })
-        await fetchJobs()
         toastSuccess('Email enviado', 'Candidatura registrada como enviada')
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : 'Erro ao atualizar vaga'
@@ -117,8 +146,8 @@ export function useJobs(userId: string | undefined) {
         toastError('Erro ao enviar', message)
       }
     },
-    [userId, fetchJobs]
+    [userId]
   )
 
-  return { jobs, loading, error, fetchJobs, createJob, markAsSent }
+  return { jobs, loading, error, fetchJobs: undefined, createJob, deleteJob, markAsSent }
 }

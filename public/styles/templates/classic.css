@@ -1,11 +1,79 @@
 .rm-template {
-  --rm-font: 'Arial', sans-serif;
-  --rm-accent: #1a3c5e;
-  --rm-section-border: 2px solid var(--rm-accent);
-  --rm-card-bg: transparent;
-  --rm-card-shadow: none;
-  --rm-card-radius: 0;
-  --rm-header-bg: transparent;
-  --rm-header-color: var(--rm-accent);
-  --rm-layout: block;
+  font-family: inherit;
+  color: #333;
+  line-height: 1.5;
+}
+
+.rm-template h1 {
+  font-size: 18pt;
+  font-weight: 700;
+  margin-bottom: 4px;
+  color: #111;
+}
+
+.rm-template h2 {
+  font-size: 13pt;
+  font-weight: 600;
+  border-bottom: 1.5px solid var(--accent-color, #1a3c5e);
+  padding-bottom: 4px;
+  margin-top: 18px;
+  margin-bottom: 10px;
+  color: #111;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.rm-template h3 {
+  font-size: 11pt;
+  font-weight: 600;
+  margin-top: 10px;
+  margin-bottom: 4px;
+  color: #222;
+}
+
+.rm-template p {
+  margin-bottom: 6px;
+  font-size: 10pt;
+}
+
+.rm-template ul,
+.rm-template ol {
+  margin-bottom: 6px;
+  padding-left: 18px;
+  font-size: 10pt;
+}
+
+.rm-template li {
+  margin-bottom: 3px;
+}
+
+.rm-template .section {
+  margin-bottom: 4px;
+}
+
+.rm-template .header-contact {
+  font-size: 9.5pt;
+  color: #555;
+  margin-bottom: 2px;
+}
+
+.rm-template .job-title {
+  font-weight: 600;
+  font-size: 10.5pt;
+  color: #222;
+}
+
+.rm-template .job-meta {
+  font-size: 9.5pt;
+  color: #555;
+  margin-bottom: 4px;
+}
+
+.rm-template .skill-tag {
+  display: inline-block;
+  padding: 2px 8px;
+  margin: 2px 3px 2px 0;
+  font-size: 9.5pt;
+  background: #f0f0f0;
+  border-radius: 3px;
 }

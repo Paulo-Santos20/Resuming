@@ -1,13 +1,116 @@
 .rm-template {
-  --rm-font: 'Calibri', sans-serif;
-  --rm-accent: #3b5998;
-  --rm-section-border: none;
-  --rm-card-bg: transparent;
-  --rm-card-shadow: none;
-  --rm-card-radius: 0;
-  --rm-header-bg: transparent;
-  --rm-header-color: var(--rm-accent);
-  --rm-layout: grid;
-  --rm-grid-template: 240px 1fr;
-  --rm-sidebar-bg: #f0f2f5;
+  font-family: inherit;
+  color: #333;
+  line-height: 1.5;
+  display: grid;
+  grid-template-columns: 34% 66%;
+}
+
+.rm-template h1 {
+  font-size: 18pt;
+  font-weight: 700;
+  margin-bottom: 6px;
+  color: #111;
+}
+
+.rm-template h2 {
+  font-size: 11pt;
+  font-weight: 700;
+  color: var(--accent-color, #1a3c5e);
+  margin-top: 0;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border-bottom: 1px solid currentColor;
+  padding-bottom: 4px;
+}
+
+.rm-template h3 {
+  font-size: 10.5pt;
+  font-weight: 600;
+  margin-top: 8px;
+  margin-bottom: 3px;
+  color: #222;
+}
+
+.rm-template p {
+  margin-bottom: 5px;
+  font-size: 9.5pt;
+}
+
+.rm-template ul,
+.rm-template ol {
+  margin-bottom: 5px;
+  padding-left: 16px;
+  font-size: 9.5pt;
+}
+
+.rm-template li {
+  margin-bottom: 2px;
+}
+
+.rm-template .main {
+  grid-column: 2;
+  padding: 24px 20px 24px 12px;
+}
+
+.rm-template .sidebar {
+  grid-column: 1;
+  background: var(--accent-color, #1a3c5e);
+  color: #fff;
+  padding: 24px 14px;
+}
+
+.rm-template .sidebar h2 {
+  color: #fff;
+  border-bottom-color: rgba(255, 255, 255, 0.3);
+}
+
+.rm-template .sidebar p,
+.rm-template .sidebar li {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.rm-template .sidebar .skill-tag {
+  display: inline-block;
+  padding: 2px 8px;
+  margin: 2px 3px 2px 0;
+  font-size: 9pt;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 3px;
+  color: #fff;
+}
+
+.rm-template .main .section {
+  margin-bottom: 14px;
+}
+
+.rm-template .header-contact {
+  font-size: 9pt;
+  color: #555;
+  margin-bottom: 2px;
+}
+
+.rm-template .sidebar .header-contact {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.rm-template .job-title {
+  font-weight: 600;
+  font-size: 10pt;
+  color: #222;
+}
+
+.rm-template .sidebar .job-title {
+  color: #fff;
+}
+
+.rm-template .job-meta {
+  font-size: 9pt;
+  color: #555;
+  margin-bottom: 4px;
+}
+
+.rm-template .sidebar .job-meta {
+  color: rgba(255, 255, 255, 0.8);
 }

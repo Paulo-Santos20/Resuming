@@ -1,16 +1,14 @@
 'use client'
 
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo } from 'react'
 import Link from 'next/link'
 import { useAuth } from '@/hooks/use-auth'
 import { useJobs } from '@/hooks/use-jobs'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Plus, Search } from 'lucide-react'
+import { Plus, Search, Briefcase } from 'lucide-react'
 import { JobCard } from '@/components/job/job-card'
 import { Skeleton } from '@/components/ui/skeleton'
-import { EmptyState } from '@/components/ui/empty-state'
-import { toastError } from '@/lib/toast'
 import { usePageTitle } from '@/hooks/use-page-title'
 
 const statusLabels = {
@@ -24,21 +22,11 @@ type StatusFilter = keyof typeof statusLabels
 
 export default function VagasPage() {
   const { user } = useAuth()
-  const { jobs, loading, fetchJobs } = useJobs(user?.uid)
+  const { jobs, loading, deleteJob } = useJobs(user?.uid)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
 
   usePageTitle('Vagas')
-
-  useEffect(() => {
-    if (user?.uid) {
-      try {
-        fetchJobs()
-      } catch {
-        toastError('Erro ao carregar vagas')
-      }
-    }
-  }, [user?.uid, fetchJobs])
 
   const filtered = useMemo(() => {
     return jobs.filter((job) => {
@@ -96,23 +84,38 @@ export default function VagasPage() {
           ))}
         </div>
       ) : filtered.length === 0 ? (
-        <EmptyState
-          title={jobs.length === 0 ? 'Nenhuma vaga adicionada ainda' : 'Nenhuma vaga encontrada'}
-          description={
-            jobs.length === 0
-              ? 'Adicione sua primeira vaga para começar a editar currículos'
-              : 'Tente ajustar a busca ou o filtro'
-          }
-          action={
-            jobs.length === 0
-              ? { label: 'Adicionar Vaga', onClick: () => {} }
-              : undefined
-          }
-        />
+        <div className="text-center py-16 rounded-xl border-2 border-dashed bg-card">
+          {search || statusFilter !== 'all' ? (
+            <>
+              <Search className="h-8 w-8 mx-auto text-muted-foreground/50 mb-3" />
+              <p className="font-medium">Nenhum resultado encontrado</p>
+              <p className="text-sm text-muted-foreground mt-2 mb-6">
+                Tente ajustar a busca ou o filtro
+              </p>
+              <Button variant="outline" onClick={() => { setSearch(''); setStatusFilter('all') }}>
+                Limpar filtros
+              </Button>
+            </>
+          ) : (
+            <>
+              <Briefcase className="h-8 w-8 mx-auto text-muted-foreground/50 mb-3" />
+              <p className="font-medium">Nenhuma vaga adicionada ainda</p>
+              <p className="text-sm text-muted-foreground mt-2 mb-6">
+                Adicione sua primeira vaga para começar a editar currículos
+              </p>
+              <Button asChild>
+                <Link href="/dashboard/vagas/nova">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Adicionar Vaga
+                </Link>
+              </Button>
+            </>
+          )}
+        </div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {filtered.map((job) => (
-            <JobCard key={job.id} job={job} />
+            <JobCard key={job.id} job={job} onDelete={deleteJob} />
           ))}
         </div>
       )}

@@ -41,8 +41,20 @@ export function EmailComposer({
     }
   }
 
+  const validateEmail = (email: string): string | null => {
+    if (!email.trim()) return 'Informe o email do destinatário'
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(email.trim())) return 'Informe um email válido'
+    return null
+  }
+
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault()
+    const validationError = validateEmail(recipientEmail)
+    if (validationError) {
+      setError(validationError)
+      return
+    }
     setError(null)
     try {
       await onSend(subject, body, recipientEmail)

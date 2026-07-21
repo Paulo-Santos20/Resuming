@@ -13,16 +13,15 @@ import { usePageTitle } from '@/hooks/use-page-title'
 export default function DashboardPage() {
   const { user, profile } = useAuth()
   const { resumes, loading: resumeLoading, uploadResume, fetchResumes } = useResume(user?.uid)
-  const { jobs, fetchJobs } = useJobs(user?.uid)
+  const { jobs } = useJobs(user?.uid)
 
   usePageTitle('Visão Geral')
 
   useEffect(() => {
     if (user?.uid) {
       fetchResumes()
-      fetchJobs()
     }
-  }, [user?.uid, fetchResumes, fetchJobs])
+  }, [user?.uid, fetchResumes])
 
   const loadingStats = resumeLoading
 

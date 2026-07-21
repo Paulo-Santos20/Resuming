@@ -1,11 +1,91 @@
 .rm-template {
-  --rm-font: 'Helvetica', Arial, sans-serif;
-  --rm-accent: #555555;
-  --rm-section-border: none;
-  --rm-card-bg: transparent;
-  --rm-card-shadow: none;
-  --rm-card-radius: 0;
-  --rm-header-bg: transparent;
-  --rm-header-color: var(--rm-accent);
-  --rm-layout: block;
+  font-family: 'Georgia', 'Times New Roman', serif;
+  color: #333;
+  line-height: 1.6;
+}
+
+.rm-template h1 {
+  font-size: 20pt;
+  font-weight: 400;
+  margin-bottom: 2px;
+  color: #000;
+  letter-spacing: 0.02em;
+}
+
+.rm-template h2 {
+  font-size: 11pt;
+  font-weight: 400;
+  color: #999;
+  margin-top: 22px;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+}
+
+.rm-template h3 {
+  font-size: 11pt;
+  font-weight: 600;
+  margin-top: 10px;
+  margin-bottom: 3px;
+  color: #222;
+}
+
+.rm-template p {
+  margin-bottom: 5px;
+  font-size: 10pt;
+  color: #444;
+}
+
+.rm-template ul,
+.rm-template ol {
+  margin-bottom: 5px;
+  padding-left: 16px;
+  font-size: 10pt;
+  color: #444;
+}
+
+.rm-template li {
+  margin-bottom: 2px;
+}
+
+.rm-template .section {
+  margin-bottom: 4px;
+}
+
+.rm-template .header-contact {
+  font-size: 9.5pt;
+  color: #777;
+  margin-bottom: 2px;
+  letter-spacing: 0.02em;
+}
+
+.rm-template .job-title {
+  font-weight: 600;
+  font-size: 10.5pt;
+  color: #222;
+}
+
+.rm-template .job-meta {
+  font-size: 9.5pt;
+  color: #777;
+  margin-bottom: 3px;
+  font-style: italic;
+}
+
+.rm-template .skill-tag {
+  display: inline-block;
+  padding: 1px 0;
+  margin: 1px 12px 1px 0;
+  font-size: 10pt;
+  color: #444;
+}
+
+.rm-template .skill-tag::after {
+  content: '/';
+  margin-left: 12px;
+  color: #ccc;
+}
+
+.rm-template .skill-tag:last-child::after {
+  content: none;
 }

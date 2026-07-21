@@ -139,7 +139,19 @@ export default function EmailVagaPage() {
   }
 
   if (loading) {
-    return <div className="flex items-center justify-center h-64 text-muted-foreground">Carregando…</div>
+    return (
+      <div className="space-y-6 animate-pulse">
+        <div className="flex items-center gap-4">
+          <div className="h-10 w-10 rounded-lg bg-muted" />
+          <div className="space-y-2">
+            <div className="h-6 w-48 rounded bg-muted" />
+            <div className="h-4 w-32 rounded bg-muted" />
+          </div>
+        </div>
+        <div className="h-40 rounded-xl bg-muted" />
+        <div className="h-80 rounded-xl bg-muted" />
+      </div>
+    )
   }
 
   if (!job) {

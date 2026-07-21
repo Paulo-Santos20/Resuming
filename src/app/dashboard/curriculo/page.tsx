@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useAuth } from '@/hooks/use-auth'
 import { useResume } from '@/hooks/use-resume'
+import type { Resume } from '@/types'
 import { useState, useEffect, useMemo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ResumeUpload } from '@/components/resume/resume-upload'
@@ -11,9 +12,11 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
-import { Eye, Trash2, Clock, Edit3, Search } from 'lucide-react'
+import { Eye, Trash2, Clock, Edit3, Search, FileText } from 'lucide-react'
 import { toastError } from '@/lib/toast'
 import { usePageTitle } from '@/hooks/use-page-title'
+import { ResumePreviewATS } from '@/components/resume/resume-preview-ats'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 
 export default function CurriculoPage() {
   const { user } = useAuth()
@@ -21,6 +24,7 @@ export default function CurriculoPage() {
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [search, setSearch] = useState('')
+  const [previewResume, setPreviewResume] = useState<Resume | null>(null)
 
   usePageTitle('Currículo')
 
@@ -143,11 +147,16 @@ export default function CurriculoPage() {
                       <Eye className="h-4 w-4" />
                     </Button>
                     {resume.parsedData && (
-                      <Button variant="ghost" size="icon" aria-label="Editar currículo" asChild>
-                        <Link href={`/dashboard/curriculo/${resume.id}/editar`}>
-                          <Edit3 className="h-4 w-4" />
-                        </Link>
-                      </Button>
+                      <>
+                        <Button variant="ghost" size="icon" aria-label="Visualizar dados" onClick={() => setPreviewResume(resume)}>
+                          <FileText className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" aria-label="Editar currículo" asChild>
+                          <Link href={`/dashboard/curriculo/${resume.id}/editar`}>
+                            <Edit3 className="h-4 w-4" />
+                          </Link>
+                        </Button>
+                      </>
                     )}
                   <Button
                     variant="ghost"
@@ -163,6 +172,15 @@ export default function CurriculoPage() {
           </div>
         )}
       </div>
+
+      <Dialog open={!!previewResume} onOpenChange={(open) => { if (!open) setPreviewResume(null) }}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{previewResume?.originalFileName || 'Pré-visualização'}</DialogTitle>
+          </DialogHeader>
+          {previewResume?.parsedData && <ResumePreviewATS data={previewResume.parsedData} />}
+        </DialogContent>
+      </Dialog>
 
       <ConfirmDialog
         open={!!deleteId}

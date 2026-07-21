@@ -1,11 +1,83 @@
 .rm-template {
-  --rm-font: 'Georgia', serif;
-  --rm-accent: #2d6a4f;
-  --rm-section-border: none;
-  --rm-card-bg: #ffffff;
-  --rm-card-shadow: 0 2px 8px rgba(0,0,0,0.06);
-  --rm-card-radius: 6px;
-  --rm-header-bg: linear-gradient(135deg, var(--rm-accent), #40916c);
-  --rm-header-color: #ffffff;
-  --rm-layout: block;
+  font-family: inherit;
+  color: #333;
+  line-height: 1.5;
+}
+
+.rm-template h1 {
+  font-size: 20pt;
+  font-weight: 700;
+  margin-bottom: 6px;
+  color: var(--accent-color, #1a3c5e);
+}
+
+.rm-template h2 {
+  font-size: 12pt;
+  font-weight: 700;
+  color: var(--accent-color, #1a3c5e);
+  margin-top: 0;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.rm-template h3 {
+  font-size: 11pt;
+  font-weight: 600;
+  margin-top: 8px;
+  margin-bottom: 4px;
+  color: #222;
+}
+
+.rm-template p {
+  margin-bottom: 6px;
+  font-size: 10pt;
+}
+
+.rm-template ul,
+.rm-template ol {
+  margin-bottom: 6px;
+  padding-left: 18px;
+  font-size: 10pt;
+}
+
+.rm-template li {
+  margin-bottom: 3px;
+}
+
+.rm-template .section {
+  background: #fff;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 14px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  border: 1px solid #eee;
+}
+
+.rm-template .header-contact {
+  font-size: 9.5pt;
+  color: #666;
+  margin-bottom: 2px;
+}
+
+.rm-template .job-title {
+  font-weight: 600;
+  font-size: 10.5pt;
+  color: #222;
+}
+
+.rm-template .job-meta {
+  font-size: 9.5pt;
+  color: #666;
+  margin-bottom: 4px;
+}
+
+.rm-template .skill-tag {
+  display: inline-block;
+  padding: 3px 10px;
+  margin: 2px 4px 2px 0;
+  font-size: 9.5pt;
+  background: var(--accent-color, #1a3c5e);
+  color: #fff;
+  border-radius: 4px;
 }
