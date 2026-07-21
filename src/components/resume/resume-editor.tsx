@@ -8,6 +8,7 @@ import { FormattingPanel } from './formatting-panel'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft, Save, Eye, Loader2 } from 'lucide-react'
 import { sanitizeHtml } from '@/lib/sanitize'
+import { toastError } from '@/lib/toast'
 import type { ResumeFormatting, TemplateStyle } from '@/types/editor'
 
 interface ResumeEditorProps {
@@ -61,14 +62,18 @@ export function ResumeEditor({
 
   const handlePreview = useCallback(async () => {
     if (!editor) return
-    const content = editor.getHTML()
-    const res = await fetch(`/styles/templates/${templateStyle}.css`)
-    const templateCss = await res.text()
+    try {
+      const content = editor.getHTML()
+      const res = await fetch(`/styles/templates/${templateStyle}.css`)
+      const templateCss = res.ok ? await res.text() : ''
 
-    const pw = window.open('', 'rm-preview')
-    if (!pw) return
+      const pw = window.open('', 'rm-preview')
+      if (!pw) {
+        toastError('Popup bloqueado', 'Permita popups para visualizar ou use o botão de download PDF')
+        return
+      }
 
-    pw.document.write(`<!DOCTYPE html>
+      pw.document.write(`<!DOCTYPE html>
 <html lang="pt-BR">
 <head><meta charset="utf-8"><title></title>
 <style>
@@ -104,7 +109,11 @@ ${templateCss}
 <body>
 <div class="page-wrap"><div class="rm-template">${sanitizeHtml(content)}</div></div>
 </body></html>`)
-    pw.document.close()
+      pw.document.close()
+    } catch (error) {
+      console.error('Erro ao gerar preview:', error)
+      toastError('Erro ao gerar preview', 'Não foi possível abrir a visualização. Tente novamente.')
+    }
   }, [editor, formatting, templateStyle])
 
   if (!editor) {
