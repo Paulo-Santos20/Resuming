@@ -4,22 +4,34 @@ import { sanitizeHtml } from '@/lib/sanitize'
 import { GenerateEmailApiSchema } from '@/lib/validations'
 
 export async function POST(request: NextRequest) {
+  console.log('[generate-email] handler invoked, PYTHON_SERVICE_URL:', PYTHON_SERVICE_URL)
   try {
     const uidOrResponse = await verifyAuth(request)
-    if (uidOrResponse instanceof NextResponse) return uidOrResponse
+    if (uidOrResponse instanceof NextResponse) {
+      console.error('[generate-email] auth failed')
+      return uidOrResponse
+    }
 
     const body = await request.json()
     const parsed = validateBody(GenerateEmailApiSchema, body)
-    if (parsed instanceof NextResponse) return parsed
+    if (parsed instanceof NextResponse) {
+      console.error('[generate-email] validation failed:', JSON.stringify(body).slice(0, 200))
+      return parsed
+    }
+
+    console.log('[generate-email] sanitizing resumeHtml length:', parsed.resumeHtml?.length)
+    const cleaned = sanitizeHtml(parsed.resumeHtml)
+    console.log('[generate-email] sanitized length:', cleaned.length)
 
     let response: Response
     try {
+      console.log('[generate-email] fetching', `${PYTHON_SERVICE_URL}/generate-email`)
       response = await fetch(`${PYTHON_SERVICE_URL}/generate-email`, {
         method: 'POST',
         headers: forwardAuth(request),
         signal: AbortSignal.timeout(60000),
         body: JSON.stringify({
-          resumeHtml: sanitizeHtml(parsed.resumeHtml),
+          resumeHtml: cleaned,
           jobTitle: parsed.jobTitle,
           companyName: parsed.companyName,
           hiringManager: parsed.hiringManager,
