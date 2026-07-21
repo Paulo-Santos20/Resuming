@@ -47,6 +47,30 @@ export function useResumeEditor({
     templateRef.current = templateStyle
   }, [formatting, templateStyle])
 
+  // Restore formatting from sessionStorage on mount
+  useEffect(() => {
+    const savedFormatting = sessionStorage.getItem(`format-${jobId}`)
+    if (savedFormatting) {
+      try {
+        setFormattingState((prev) => ({ ...prev, ...JSON.parse(savedFormatting) }))
+      } catch { /* ignore invalid JSON */ }
+    }
+    const savedTemplate = sessionStorage.getItem(`template-${jobId}`)
+    if (savedTemplate) {
+      setTemplateStyle(savedTemplate as TemplateStyle)
+    }
+  }, [jobId])
+
+  // Persist formatting to sessionStorage on change
+  useEffect(() => {
+    sessionStorage.setItem(`format-${jobId}`, JSON.stringify(formatting))
+  }, [formatting, jobId])
+
+  // Persist template style to sessionStorage on change
+  useEffect(() => {
+    sessionStorage.setItem(`template-${jobId}`, templateStyle)
+  }, [templateStyle, jobId])
+
   const editor = useEditor({
     extensions: [
       StarterKit.configure({

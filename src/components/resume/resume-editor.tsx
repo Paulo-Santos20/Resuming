@@ -79,8 +79,6 @@ export function ResumeEditor({
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body {
-  font-size: ${formatting.fontSize}pt;
-  line-height: ${formatting.lineHeight};
   background: #f5f5f5;
   display: flex;
   flex-direction: column;
@@ -89,22 +87,46 @@ body {
 }
 .page-wrap { width: 210mm; background: #fff; padding: ${formatting.pageMargins}mm; box-shadow: 0 1px 8px rgba(0,0,0,0.07); position: relative; }
 .rm-template {
-  font-family: var(--rm-font, ${formatting.fontFamily}, sans-serif);
-  color: var(--rm-text, #333);
+  --rm-font: ${formatting.fontFamily}, sans-serif;
+  --rm-accent: ${formatting.accentColor};
+  --accent-color: ${formatting.accentColor};
+  --rm-section-spacing: ${formatting.sectionSpacing}px;
 }
-.rm-template h1, .rm-template h2, .rm-template h3 {
-  color: var(--rm-accent, ${formatting.accentColor});
-  font-family: var(--rm-font, ${formatting.fontFamily}, sans-serif);
-}
-.rm-template h1 { font-size: ${Math.min(formatting.fontSize + 6, 22)}pt; margin-bottom: 3px; }
-.rm-template h2 { font-size: ${Math.min(formatting.fontSize + 3, 17)}pt; border-bottom: var(--rm-section-border, 2px solid ${formatting.accentColor}); padding-bottom: 3px; margin-top: 8px; margin-bottom: 4px; break-before: auto; }
-.rm-template h3 { font-size: ${formatting.fontSize + 1}pt; margin-top: 6px; margin-bottom: 2px; }
-.rm-template p { margin-bottom: 3px; }
-.rm-template ul, .rm-template ol { margin-bottom: 3px; padding-left: 18px; }
-.rm-template li { margin-bottom: 1px; }
 ${templateCss}
-@page { size: A4; margin: 0; }
+.rm-template {
+  font-family: var(--rm-font, ${formatting.fontFamily}, sans-serif);
+  font-size: ${formatting.fontSize}pt;
+  line-height: ${formatting.lineHeight};
+}
+.rm-template h1 {
+  font-size: ${Math.min(formatting.fontSize + 6, 22)}pt;
+  margin-bottom: 3px;
+}
+.rm-template h2 {
+  font-size: ${Math.min(formatting.fontSize + 3, 17)}pt;
+  border-bottom: 2px solid ${formatting.accentColor};
+  padding-bottom: 3px;
+  margin-top: ${formatting.sectionSpacing}px;
+  margin-bottom: 4px;
+  break-before: auto;
+}
+.rm-template h3 {
+  font-size: ${formatting.fontSize + 1}pt;
+  margin-top: ${formatting.sectionSpacing * 0.5}px;
+  margin-bottom: 2px;
+}
+.rm-template p {
+  margin-bottom: 3px;
+}
+.rm-template ul, .rm-template ol {
+  margin-bottom: 3px;
+  padding-left: 18px;
+}
+.rm-template li {
+  margin-bottom: 1px;
+}
 @media print { body { padding: 0; background: #fff; } .page-wrap { box-shadow: none; } }
+@page { size: A4; margin: 0; }
 </style></head>
 <body>
 <div class="page-wrap"><div class="rm-template">${sanitizeHtml(content)}</div></div>
@@ -139,6 +161,7 @@ ${templateCss}
               line-height: ${formatting.lineHeight};
               --rm-font: ${formatting.fontFamily}, sans-serif;
               --rm-accent: ${formatting.accentColor};
+              --accent-color: ${formatting.accentColor};
               --rm-section-spacing: ${formatting.sectionSpacing}px;
             }
             .rm-template .ProseMirror h1,
