@@ -9,8 +9,6 @@ import {
   addDoc,
   doc,
   updateDoc,
-  deleteDoc,
-  getDoc,
   limit,
   onSnapshot,
   writeBatch,
@@ -49,6 +47,7 @@ export function useResume(userId: string | undefined) {
 
   useEffect(() => {
     if (!userId) return
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true)
     const dbInstance = getDbInstance()
     const q = query(
@@ -113,6 +112,7 @@ export function useResume(userId: string | undefined) {
         setLoading(false)
       }
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [userId, fetchResumes, processing.register]
   )
 

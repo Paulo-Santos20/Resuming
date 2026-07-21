@@ -36,7 +36,7 @@ export function EmailComposer({
       const result = await onGenerateEmail()
       setSubject(result.subject)
       setBody(result.body)
-    } catch (err) {
+    } catch {
       setError('Erro ao gerar email com IA')
     }
   }
@@ -58,7 +58,7 @@ export function EmailComposer({
     setError(null)
     try {
       await onSend(subject, body, recipientEmail)
-    } catch (err) {
+    } catch {
       setError('Erro ao enviar email')
     }
   }

@@ -11,7 +11,6 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ArrowLeft } from 'lucide-react'
 import type { Resume, ResumeVersion } from '@/types'
-import type { ResumeFormatting, TemplateStyle } from '@/types/editor'
 import { renderResumeDataToHtml } from '@/lib/render-resume-data'
 
 const ResumeEditor = dynamic(

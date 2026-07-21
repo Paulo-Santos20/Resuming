@@ -157,7 +157,7 @@ export function Sidebar({ onLogout, userName, userEmail, photoURL, mobileOpen, o
               <div key={item.href} className="relative group">
                 <Link
                   href={item.href}
-                  onClick={() => { isMobile && onMobileClose?.() }}
+                  onClick={() => { if (isMobile) onMobileClose?.() }}
                   onMouseEnter={() => setHoveredItem(item.href)}
                   onMouseLeave={() => setHoveredItem(null)}
                   className={cn(

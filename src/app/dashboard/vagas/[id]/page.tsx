@@ -6,7 +6,6 @@ import { doc, getDoc } from 'firebase/firestore'
 import { getDbInstance, getAuthInstance } from '@/lib/firebase'
 import { useAuth } from '@/hooks/use-auth'
 import { useResume } from '@/hooks/use-resume'
-import { useJobs } from '@/hooks/use-jobs'
 import { useProcessing } from '@/contexts/processing-context'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -59,8 +58,7 @@ export default function VagaDetalhePage() {
   const { id } = useParams<{ id: string }>()
   const { user } = useAuth()
   const router = useRouter()
-  const { resumes, loading: resumeLoading, fetchResumes, editResume } = useResume(user?.uid)
-  const { markAsSent } = useJobs(user?.uid)
+  const { resumes, fetchResumes, editResume } = useResume(user?.uid)
   const processing = useProcessing()
   const [job, setJob] = useState<JobDescription | null>(null)
   const [selectedResumeId, setSelectedResumeId] = useState<string>('')
@@ -95,6 +93,7 @@ export default function VagaDetalhePage() {
   useEffect(() => {
     if (resumes.length > 0 && !selectedResumeId) {
       const firstProcessed = resumes.find((r) => r.parsedData)
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       if (firstProcessed) setSelectedResumeId(firstProcessed.id)
     }
   }, [resumes, selectedResumeId])
@@ -109,6 +108,7 @@ export default function VagaDetalhePage() {
       const ats = sessionStorage.getItem(`edited-${id}-ats`)
       const original = sessionStorage.getItem(`edited-${id}-original`)
       const chosen = validateVersionType(sessionStorage.getItem(`chosen-${id}`))
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       if (ats) setVersionAts(ats)
       if (original) setVersionOriginal(original)
       if (chosen) setChosenVersion(chosen)

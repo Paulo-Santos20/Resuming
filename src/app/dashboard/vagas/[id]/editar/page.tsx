@@ -17,7 +17,7 @@ import { usePageTitle } from '@/hooks/use-page-title'
 import { sanitizeHtml } from '@/lib/sanitize'
 import { renderResumeDataToHtml } from '@/lib/render-resume-data'
 import { cn } from '@/lib/utils'
-import type { JobDescription, Resume } from '@/types'
+import type { JobDescription } from '@/types'
 
 const ResumeEditor = dynamic(
   () => import('@/components/resume/resume-editor').then((m) => m.ResumeEditor),
@@ -76,6 +76,7 @@ export default function EditarCurriculoPage() {
     if (!id) return
     const ats = sessionStorage.getItem(`edited-${id}-ats`)
     const orig = sessionStorage.getItem(`edited-${id}-original`)
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (ats) setVersionAts(ats)
     if (orig) setVersionOriginal(orig)
 
@@ -88,6 +89,7 @@ export default function EditarCurriculoPage() {
     if (!resumes.length) return
     const processed = resumes.find((r) => r.parsedData)
     if (!processed?.parsedData) return
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setOriginalContent(renderResumeDataToHtml(processed.parsedData))
     if (!sessionStorage.getItem(`resume-${id}`)) {
       setResumeId(processed.id)
@@ -97,6 +99,7 @@ export default function EditarCurriculoPage() {
   // Auto-select first available version
   useEffect(() => {
     if (selectedVersion) return
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (versionAts) setSelectedVersion('ats')
     else if (versionOriginal) setSelectedVersion('original')
     else if (originalContent) setSelectedVersion('uploaded')

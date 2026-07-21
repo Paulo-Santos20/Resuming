@@ -37,6 +37,7 @@ export default function EmailVagaPage() {
   const [confirmData, setConfirmData] = useState<{ subject: string; body: string; to: string } | null>(null)
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setChosenType(sessionStorage.getItem(`chosen-${id}`) || 'ats')
     setResumeHtml(sessionStorage.getItem(`edited-${id}`) || '')
   }, [id])

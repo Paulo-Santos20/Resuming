@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { formatDate, truncate } from '@/lib/utils'
-import { Edit3, Eye, Send, Trash2, ArrowRight } from 'lucide-react'
+import { Edit3, Eye, Send, Trash2 } from 'lucide-react'
 import type { JobDescription } from '@/types'
 
 const statusConfig = {

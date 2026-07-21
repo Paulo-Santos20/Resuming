@@ -21,8 +21,6 @@ export async function POST(request: NextRequest) {
       console.warn('[edit-resume] jobDescription vazia, usando fallback')
     }
 
-    console.log('[edit-resume] calling Python service at', PYTHON_SERVICE_URL)
-
     let response: Response
     try {
       response = await fetch(`${PYTHON_SERVICE_URL}/edit-resume`, {
@@ -56,7 +54,6 @@ export async function POST(request: NextRequest) {
     }
 
     const data = await response.json()
-    console.log('[edit-resume] Python success, html length:', data.html?.length || 0)
     if (data.html) {
       data.html = sanitizeHtml(data.html)
     }

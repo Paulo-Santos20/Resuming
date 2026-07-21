@@ -11,7 +11,6 @@ import {
   deleteDoc,
   limit,
   onSnapshot,
-  Unsubscribe,
 } from 'firebase/firestore'
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 import { getDbInstance, getStorageInstance, getAuthInstance } from '@/lib/firebase'
@@ -25,6 +24,7 @@ export function useJobs(userId: string | undefined) {
 
   useEffect(() => {
     if (!userId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setJobs([])
       setLoading(false)
       return

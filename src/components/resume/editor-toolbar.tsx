@@ -25,33 +25,36 @@ interface EditorToolbarProps {
 }
 
 export function EditorToolbar({ editor }: EditorToolbarProps) {
-  if (!editor) return null
+  const groups = useMemo(() => {
+    if (!editor) return []
+    return [
+      [
+        { icon: Bold, action: () => editor.chain().focus().toggleBold().run(), active: editor.isActive('bold'), label: 'Negrito' },
+        { icon: Italic, action: () => editor.chain().focus().toggleItalic().run(), active: editor.isActive('italic'), label: 'Itálico' },
+        { icon: Underline, action: () => editor.chain().focus().toggleUnderline().run(), active: editor.isActive('underline'), label: 'Sublinhado' },
+      ],
+      [
+        { icon: Heading1, action: () => editor.chain().focus().toggleHeading({ level: 1 }).run(), active: editor.isActive('heading', { level: 1 }), label: 'Título 1' },
+        { icon: Heading2, action: () => editor.chain().focus().toggleHeading({ level: 2 }).run(), active: editor.isActive('heading', { level: 2 }), label: 'Título 2' },
+        { icon: Heading3, action: () => editor.chain().focus().toggleHeading({ level: 3 }).run(), active: editor.isActive('heading', { level: 3 }), label: 'Título 3' },
+      ],
+      [
+        { icon: List, action: () => editor.chain().focus().toggleBulletList().run(), active: editor.isActive('bulletList'), label: 'Lista' },
+        { icon: ListOrdered, action: () => editor.chain().focus().toggleOrderedList().run(), active: editor.isActive('orderedList'), label: 'Lista numerada' },
+      ],
+      [
+        { icon: AlignLeft, action: () => editor.chain().focus().setTextAlign('left').run(), active: editor.isActive({ textAlign: 'left' }), label: 'Alinhar esquerda' },
+        { icon: AlignCenter, action: () => editor.chain().focus().setTextAlign('center').run(), active: editor.isActive({ textAlign: 'center' }), label: 'Centralizar' },
+        { icon: AlignRight, action: () => editor.chain().focus().setTextAlign('right').run(), active: editor.isActive({ textAlign: 'right' }), label: 'Alinhar direita' },
+      ],
+      [
+        { icon: Undo2, action: () => editor.chain().focus().undo().run(), active: false, label: 'Desfazer' },
+        { icon: Redo2, action: () => editor.chain().focus().redo().run(), active: false, label: 'Refazer' },
+      ],
+    ]
+  }, [editor])
 
-  const groups = useMemo(() => [
-    [
-      { icon: Bold, action: () => editor.chain().focus().toggleBold().run(), active: editor.isActive('bold'), label: 'Negrito' },
-      { icon: Italic, action: () => editor.chain().focus().toggleItalic().run(), active: editor.isActive('italic'), label: 'Itálico' },
-      { icon: Underline, action: () => editor.chain().focus().toggleUnderline().run(), active: editor.isActive('underline'), label: 'Sublinhado' },
-    ],
-    [
-      { icon: Heading1, action: () => editor.chain().focus().toggleHeading({ level: 1 }).run(), active: editor.isActive('heading', { level: 1 }), label: 'Título 1' },
-      { icon: Heading2, action: () => editor.chain().focus().toggleHeading({ level: 2 }).run(), active: editor.isActive('heading', { level: 2 }), label: 'Título 2' },
-      { icon: Heading3, action: () => editor.chain().focus().toggleHeading({ level: 3 }).run(), active: editor.isActive('heading', { level: 3 }), label: 'Título 3' },
-    ],
-    [
-      { icon: List, action: () => editor.chain().focus().toggleBulletList().run(), active: editor.isActive('bulletList'), label: 'Lista' },
-      { icon: ListOrdered, action: () => editor.chain().focus().toggleOrderedList().run(), active: editor.isActive('orderedList'), label: 'Lista numerada' },
-    ],
-    [
-      { icon: AlignLeft, action: () => editor.chain().focus().setTextAlign('left').run(), active: editor.isActive({ textAlign: 'left' }), label: 'Alinhar esquerda' },
-      { icon: AlignCenter, action: () => editor.chain().focus().setTextAlign('center').run(), active: editor.isActive({ textAlign: 'center' }), label: 'Centralizar' },
-      { icon: AlignRight, action: () => editor.chain().focus().setTextAlign('right').run(), active: editor.isActive({ textAlign: 'right' }), label: 'Alinhar direita' },
-    ],
-    [
-      { icon: Undo2, action: () => editor.chain().focus().undo().run(), active: false, label: 'Desfazer' },
-      { icon: Redo2, action: () => editor.chain().focus().redo().run(), active: false, label: 'Refazer' },
-    ],
-  ], [editor])
+  if (!editor) return null
 
   return (
     <div className="flex flex-wrap items-center gap-0.5 rounded-t-lg border-b bg-muted/30 p-1.5">

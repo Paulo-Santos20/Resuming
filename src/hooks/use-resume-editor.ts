@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import { useEditor } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Underline from '@tiptap/extension-underline'
@@ -24,7 +24,7 @@ interface UseResumeEditorOptions {
 }
 
 export function useResumeEditor({
-  versionId,
+  versionId: _versionId,
   resumeId,
   jobId,
   initialContent,
@@ -42,8 +42,10 @@ export function useResumeEditor({
   const [saving, setSaving] = useState(false)
   const formattingRef = useRef(formatting)
   const templateRef = useRef(templateStyle)
-  formattingRef.current = formatting
-  templateRef.current = templateStyle
+  useEffect(() => {
+    formattingRef.current = formatting
+    templateRef.current = templateStyle
+  }, [formatting, templateStyle])
 
   const editor = useEditor({
     extensions: [

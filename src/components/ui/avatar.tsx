@@ -18,6 +18,7 @@ const AvatarImage = React.forwardRef<HTMLImageElement, React.ImgHTMLAttributes<H
   ({ className, alt = '', onError, ...props }, ref) => {
     const [imgError, setImgError] = React.useState(false)
     if (imgError) return null
+    /* eslint-disable @next/next/no-img-element */
     return (
       <img
         ref={ref}
@@ -31,6 +32,7 @@ const AvatarImage = React.forwardRef<HTMLImageElement, React.ImgHTMLAttributes<H
         {...props}
       />
     )
+    /* eslint-enable @next/next/no-img-element */
   }
 )
 AvatarImage.displayName = 'AvatarImage'

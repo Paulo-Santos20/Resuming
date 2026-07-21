@@ -71,7 +71,7 @@ interface DialogContentProps extends React.HTMLAttributes<HTMLDivElement> {
 }
 
 const DialogContent = React.forwardRef<HTMLDivElement, DialogContentProps>(
-  ({ className, children, showClose = true, ...props }, ref) => {
+  ({ className, children, showClose = true, ...props }, _ref) => {
     const { open, onOpenChange, titleId } = useDialog()
     const panelRef = React.useRef<HTMLDivElement>(null)
     const previousActiveElement = React.useRef<HTMLElement | null>(null)

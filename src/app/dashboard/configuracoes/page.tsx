@@ -3,7 +3,6 @@
 import { useAuth } from '@/hooks/use-auth'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
-import { Separator } from '@/components/ui/separator'
 import { Button } from '@/components/ui/button'
 import { useUIStore } from '@/stores/ui-store'
 import { LogOut, Trash2, Moon, Sun } from 'lucide-react'
